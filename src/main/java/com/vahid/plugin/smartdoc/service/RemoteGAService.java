@@ -13,6 +13,7 @@ import com.vahid.plugin.smartdoc.config.SmartDocState;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service(Service.Level.APP)
@@ -32,6 +33,7 @@ public final class RemoteGAService {
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         CompletionRequest completionRequest = CompletionRequest.builder()
                 .prompt(createPrompt(superMethod, psiMethodCallExpressions))
+                .model("gpt-3.5-turbo")
                 .echo(true)
                 .build();
         return openAiService.createCompletion(completionRequest).getChoices()
@@ -46,7 +48,7 @@ public final class RemoteGAService {
             " {1}";
         List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
                 .map(methodCallExpression -> String.join(":", List.of(methodCallExpression.getMethodExpression().getText(),
-                        methodService.findMethodComment(methodCallExpression.resolveMethod()).getText())))
+                        methodService.findMethodComment(Objects.requireNonNull(methodCallExpression.resolveMethod())).getText())))
                 .collect(Collectors.toList());
 
         String joinedMethodCalls = String.join(",", nestedMethodCallComment);

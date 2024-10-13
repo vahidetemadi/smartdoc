@@ -16,9 +16,7 @@ import com.vahid.plugin.smartdoc.service.RemoteGAService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 
 public class UpdateAction extends AnAction {
     private Stack<PsiMethod> methodStack = new Stack<>();
@@ -51,7 +49,9 @@ public class UpdateAction extends AnAction {
         List<String> comments = new ArrayList<>();
         if (method != null) {
             PsiComment methodComment = methodService.findMethodComment(method);
-            comments.add(methodComment.getText());
+            if (methodComment != null) {
+                comments.add(methodComment.getText());
+            }
         }
 
         methodStack.add(method);
@@ -59,7 +59,9 @@ public class UpdateAction extends AnAction {
         iterateOverMethods(method);
 
         // Iterate over stack collection and apply method update in case the method does not have a comment yet!
-        for (PsiMethod stackMethod : methodStack) {
+//        for (PsiMethod stackMethod : methodStack) {
+          while (!methodStack.isEmpty()) {
+            PsiMethod stackMethod = methodStack.pop();
             List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
             String methodComment = remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls);
             methodService.replaceMethodComment(stackMethod, methodComment, e.getProject());
