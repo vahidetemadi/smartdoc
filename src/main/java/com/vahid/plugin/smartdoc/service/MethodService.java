@@ -50,19 +50,17 @@ public final class MethodService {
     }
 
     public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
-        SwingUtilities.invokeLater(() -> {
-            WriteCommandAction.runWriteCommandAction(project, () -> {
-                PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
-                PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+        SwingUtilities.invokeLater(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
+            PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
+            PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
 
-                PsiComment oldComment = findMethodComment(method);
-                if (oldComment != null) {
-                    oldComment.replace(newComment);
-                } else {
-                    // If there's no existing comment, add the new comment before the method
-                    method.getParent().addBefore(newComment, method);
-                }
-            });
-        });
+            PsiComment oldComment = findMethodComment(method);
+            if (oldComment != null) {
+                oldComment.replace(newComment);
+            } else {
+                // If there's no existing comment, add the new comment before the method
+                method.getParent().addBefore(newComment, method);
+            }
+        }));
     }
 }
