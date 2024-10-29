@@ -9,11 +9,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.APP)
 public final class MethodService {
+    private static final Map<String, String> methodComments = new ConcurrentHashMap<>();
+
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
         method.accept(new JavaRecursiveElementVisitor() {
@@ -26,18 +28,18 @@ public final class MethodService {
         return methodCalls;
     }
 
-    public PsiComment findMethodComment(PsiMethod method) {
+    public Optional<PsiComment> findMethodComment(PsiMethod method) {
         // Check for a PsiDocComment directly attached to the method
         PsiDocComment docComment = method.getDocComment();
         if (docComment != null) {
-            return docComment;
+            return Optional.of(docComment);
         }
 
         // Look for other comments (e.g., single line or block comments) preceding the method
         PsiElement element = method.getPrevSibling();
         while (element != null) {
             if (element instanceof PsiComment) {
-                return (PsiComment) element;
+                return Optional.of((PsiComment) element);
             }
             // Skip whitespace and move to the previous sibling
             if (!(element instanceof PsiWhiteSpace)) {
@@ -46,7 +48,12 @@ public final class MethodService {
             element = element.getPrevSibling();
         }
 
-        return null;
+        return Optional.empty();
+    }
+
+    public String getMethodComment(PsiMethod psiMethod) {
+        //TODO replace this "" with call from gpt
+        return methodComments.getOrDefault(getMethodUniqueKey(psiMethod), "");
     }
 
     public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
@@ -54,13 +61,26 @@ public final class MethodService {
             PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
             PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
 
-            PsiComment oldComment = findMethodComment(method);
-            if (oldComment != null) {
-                oldComment.replace(newComment);
-            } else {
-                // If there's no existing comment, add the new comment before the method
-                method.getParent().addBefore(newComment, method);
-            }
+            Optional<PsiComment> oldCommentOptional = findMethodComment(method);
+            oldCommentOptional.ifPresentOrElse(
+                    oldComment -> oldComment.replace(newComment),
+                    () -> method.getParent().addBefore(newComment, method));
+//            if (oldComment != null) {
+//                oldComment.replace(newComment)
+//            } else {
+//                // If there's no existing comment, add the new comment before the method
+//                method.getParent().addBefore(newComment, method);
+//            }
         }));
+    }
+
+    public void updateMethodCommentMap(PsiMethod stackMethod, String methodComment) {
+        methodComments.computeIfAbsent(getMethodUniqueKey(stackMethod), k -> methodComment);
+    }
+
+    public static String getMethodUniqueKey(PsiMethod psiMethod) {
+        PsiClass psiClass = psiMethod.getContainingClass();
+        String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
+        return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY).toString();
     }
 }

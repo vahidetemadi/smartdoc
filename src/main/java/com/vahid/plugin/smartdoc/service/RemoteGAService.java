@@ -47,8 +47,9 @@ public final class RemoteGAService {
         String template = "Produce comment for method {0} which inside it are method calls and their explanation are as" +
             " {1}";
         List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
-                .map(methodCallExpression -> String.join(":", List.of(methodCallExpression.getMethodExpression().getText(),
-                        methodService.findMethodComment(Objects.requireNonNull(methodCallExpression.resolveMethod())).getText())))
+                .filter(Objects::nonNull)
+                .map(methodCallExpression -> String.join(":", List.of(MethodService.getMethodUniqueKey(methodCallExpression.resolveMethod()),
+                        methodService.getMethodComment(methodCallExpression.resolveMethod()))))
                 .collect(Collectors.toList());
 
         String joinedMethodCalls = String.join(",", nestedMethodCallComment);

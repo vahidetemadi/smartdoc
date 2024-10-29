@@ -13,6 +13,7 @@ import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
+import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,25 +47,31 @@ public class UpdateAction extends AnAction {
         int offset = editor.getCaretModel().getOffset();
         PsiElement elementAtCaret = psiFile.findElementAt(offset);
         PsiMethod method = PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
-        List<String> comments = new ArrayList<>();
-        if (method != null) {
-            PsiComment methodComment = methodService.findMethodComment(method);
-            if (methodComment != null) {
-                comments.add(methodComment.getText());
-            }
-        }
+//        List<String> comments = new ArrayList<>();
+//        if (method != null) {
+//            PsiComment methodComment = methodService.findMethodComment(method);
+//            if (methodComment != null) {
+//                comments.add(methodComment.getText());
+//            }
+//        }
 
         methodStack.add(method);
         // Starting from the current method to iterate in a DFS manner
         iterateOverMethods(method);
 
         // Iterate over stack collection and apply method update in case the method does not have a comment yet!
-//        for (PsiMethod stackMethod : methodStack) {
           while (!methodStack.isEmpty()) {
             PsiMethod stackMethod = methodStack.pop();
             List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
-            String methodComment = remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls);
-            methodService.replaceMethodComment(stackMethod, methodComment, e.getProject());
+            Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
+            String methodComment = methodCommentOptional
+                    .map(PsiComment::getText)
+                    .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
+            if (methodStack.isEmpty()) {
+                methodService.replaceMethodComment(stackMethod, methodComment, e.getProject());
+            } else {
+                methodService.updateMethodCommentMap(stackMethod, methodComment);
+            }
         }
     }
 
