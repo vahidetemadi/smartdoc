@@ -12,6 +12,9 @@ import com.theokanning.openai.service.OpenAiService;
 import com.vahid.plugin.smartdoc.config.SmartDocState;
 
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,14 +29,15 @@ public final class RemoteGAService {
     public RemoteGAService() {
         //this.project = ProjectManager.getInstance().getOpenProjects()[0];
 //        this.openAiService = new OpenAiService(SmartDocState.getInstance(project).apiKey);
-        this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey);
+        this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey,
+                Duration.of(50, ChronoUnit.SECONDS));
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
     }
 
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         CompletionRequest completionRequest = CompletionRequest.builder()
                 .prompt(createPrompt(superMethod, psiMethodCallExpressions))
-                .model("gpt-3.5-turbo")
+                .model("gpt-4-turbo")
                 .echo(true)
                 .build();
         return openAiService.createCompletion(completionRequest).getChoices()
@@ -44,16 +48,16 @@ public final class RemoteGAService {
     }
 
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
-        String template = "Produce comment for method {0} which inside it are method calls and their explanation are as" +
+        String template = "Produce Java method conventional comment for method: {0}, given explanations for nested method calls as follow:\n" +
             " {1}";
         List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
                 .filter(Objects::nonNull)
-                .map(methodCallExpression -> String.join(":", List.of(MethodService.getMethodUniqueKey(methodCallExpression.resolveMethod()),
+                .map(methodCallExpression -> String.join(" with method comment:", List.of(methodCallExpression.getMethodExpression().getReferenceName(),
                         methodService.getMethodComment(methodCallExpression.resolveMethod()))))
                 .collect(Collectors.toList());
 
-        String joinedMethodCalls = String.join(",", nestedMethodCallComment);
-        return MessageFormat.format(template, superMethod.getBody(), joinedMethodCalls);
+        String joinedMethodCalls = String.join(" ,and", nestedMethodCallComment);
+        return MessageFormat.format(template, superMethod.getText(), joinedMethodCalls);
     }
 
 

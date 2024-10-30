@@ -1,5 +1,7 @@
 package com.vahid.plugin.smartdoc.service;
 
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
@@ -52,12 +54,11 @@ public final class MethodService {
     }
 
     public String getMethodComment(PsiMethod psiMethod) {
-        //TODO replace this "" with call from gpt
-        return methodComments.getOrDefault(getMethodUniqueKey(psiMethod), "");
+        return methodComments.getOrDefault(getMethodUniqueKey(psiMethod), psiMethod.getText());
     }
 
     public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
-        SwingUtilities.invokeLater(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
+        ApplicationManager.getApplication().invokeLater(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
             PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
             PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
 
@@ -65,13 +66,7 @@ public final class MethodService {
             oldCommentOptional.ifPresentOrElse(
                     oldComment -> oldComment.replace(newComment),
                     () -> method.getParent().addBefore(newComment, method));
-//            if (oldComment != null) {
-//                oldComment.replace(newComment)
-//            } else {
-//                // If there's no existing comment, add the new comment before the method
-//                method.getParent().addBefore(newComment, method);
-//            }
-        }));
+        }), ModalityState.defaultModalityState());
     }
 
     public void updateMethodCommentMap(PsiMethod stackMethod, String methodComment) {
@@ -81,6 +76,6 @@ public final class MethodService {
     public static String getMethodUniqueKey(PsiMethod psiMethod) {
         PsiClass psiClass = psiMethod.getContainingClass();
         String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
-        return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY).toString();
+        return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY);
     }
 }

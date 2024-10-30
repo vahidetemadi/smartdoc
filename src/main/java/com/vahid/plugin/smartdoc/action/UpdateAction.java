@@ -68,7 +68,7 @@ public class UpdateAction extends AnAction {
                     .map(PsiComment::getText)
                     .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
             if (methodStack.isEmpty()) {
-                methodService.replaceMethodComment(stackMethod, methodComment, e.getProject());
+                methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
             } else {
                 methodService.updateMethodCommentMap(stackMethod, methodComment);
             }
