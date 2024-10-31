@@ -5,6 +5,8 @@ import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import org.jetbrains.annotations.NotNull;
@@ -24,10 +26,22 @@ public final class MethodService {
             @Override
             public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
                 super.visitMethodCallExpression(expression);
-                methodCalls.add(expression);
+                PsiMethod calledMethod = expression.resolveMethod();
+                if (calledMethod != null) {
+                    PsiClass calledClass = calledMethod.getContainingClass();
+                    if (calledClass != null && isInProject(calledClass)) {
+                        methodCalls.add(expression);
+                    }
+                }
             }
         });
         return methodCalls;
+    }
+
+    private boolean isInProject(PsiClass psiClass) {
+        Project project = psiClass.getProject();
+        VirtualFile classFile = psiClass.getContainingFile().getVirtualFile();
+        return classFile != null && ProjectRootManager.getInstance(project).getFileIndex().isInSourceContent(classFile);
     }
 
     public Optional<PsiComment> findMethodComment(PsiMethod method) {
