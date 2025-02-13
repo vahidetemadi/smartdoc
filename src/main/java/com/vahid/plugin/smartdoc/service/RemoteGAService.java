@@ -23,22 +23,23 @@ import java.util.stream.Collectors;
 public final class RemoteGAService {
 
     //private Project project;
-    private static final String MODEL = "babbage-002";
+    private static final String MODEL = "gpt-3.5-turbo";
     private OpenAiService openAiService;
     private MethodService methodService;
     public RemoteGAService() {
         //this.project = ProjectManager.getInstance().getOpenProjects()[0];
 //        this.openAiService = new OpenAiService(SmartDocState.getInstance(project).apiKey);
-        this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey,
-                Duration.of(50, ChronoUnit.SECONDS));
+        this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey);
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
     }
 
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
+        final String prompt = createPrompt(superMethod, psiMethodCallExpressions);
         CompletionRequest completionRequest = CompletionRequest.builder()
-                .prompt(createPrompt(superMethod, psiMethodCallExpressions))
-                .model("gpt-4-turbo")
-                .echo(true)
+                .prompt(prompt)
+                .model(MODEL)
+                .echo(false)
+                .maxTokens(500)
                 .build();
         return openAiService.createCompletion(completionRequest).getChoices()
                 .stream()
