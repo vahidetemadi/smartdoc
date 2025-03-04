@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@Service(Service.Level.APP)
-public final class RemoteGAService {
+//@Service(Service.Level.APP)
+public class RemoteGAService {
 
     //private Project project;
     private static final String MODEL = "gpt-3.5-turbo";
@@ -29,13 +29,14 @@ public final class RemoteGAService {
     public RemoteGAService() {
         //this.project = ProjectManager.getInstance().getOpenProjects()[0];
 //        this.openAiService = new OpenAiService(SmartDocState.getInstance(project).apiKey);
-        this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey);
+        //this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey);
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
     }
 
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         final String prompt = createPrompt(superMethod, psiMethodCallExpressions);
         CompletionRequest completionRequest = CompletionRequest.builder()
+                
                 .prompt(prompt)
                 .model(MODEL)
                 .echo(false)
@@ -47,7 +48,7 @@ public final class RemoteGAService {
                 .map(CompletionChoice::getText)
                 .orElse(null);
     }
-
+    
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         String template = "Produce Java method conventional comment for method: {0}, given explanations for nested method calls as follow:\n" +
             " {1}";

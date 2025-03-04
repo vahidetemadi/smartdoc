@@ -1,7 +1,6 @@
 package com.vahid.plugin.smartdoc.service;
 
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.application.*;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
@@ -48,7 +47,7 @@ public final class MethodService {
         // Check for a PsiDocComment directly attached to the method
         PsiDocComment docComment = method.getDocComment();
         if (docComment != null) {
-            return Optional.of(docComment);
+            return Optional.ofNullable(docComment);
         }
 
         // Look for other comments (e.g., single line or block comments) preceding the method
@@ -72,16 +71,81 @@ public final class MethodService {
     }
 
     public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
-        ApplicationManager.getApplication().invokeLater(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
-            PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
-            PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+        System.out.println("Start reading foemr doc");
+        // Read PSI safely in a background thread
+        Optional<PsiComment> oldCommentOptional = findMethodComment(method);
 
-            Optional<PsiComment> oldCommentOptional = findMethodComment(method);
-            oldCommentOptional.ifPresentOrElse(
-                    oldComment -> oldComment.replace(newComment),
-                    () -> method.getParent().addBefore(newComment, method));
-        }), ModalityState.defaultModalityState());
+        // Switch to UI Thread for PSI modification
+        ApplicationManager.getApplication().invokeLater(() -> {
+            System.out.println("Start writing doc");
+            WriteAction.run(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
+                PsiDocumentManager.getInstance(project).commitAllDocuments(); // Sync document
+
+                PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
+                PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+
+                oldCommentOptional.ifPresentOrElse(
+                        oldComment -> oldComment.replace(newComment),
+                        () -> method.getParent().addBefore(newComment, method)
+                );
+            }));
+        }, ModalityState.defaultModalityState());
     }
+
+//    public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
+//        ApplicationManager.getApplication().executeOnPooledThread(() -> { // Run in background thread
+//            PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
+//
+//            Optional<PsiComment> oldCommentOptional = ReadAction.compute(() -> findMethodComment(method)); // Read safely
+//
+//            ApplicationManager.getApplication().invokeLater(() -> { // Switch to EDT for write action
+//                WriteAction.run(() -> { // Ensure writing is done correctly
+//                    WriteCommandAction.runWriteCommandAction(project, () -> {
+//                        PsiDocumentManager.getInstance(project).commitAllDocuments(); // Ensure PSI and document are synced
+//
+//                        PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+//                        oldCommentOptional.ifPresentOrElse(
+//                                oldComment -> oldComment.replace(newComment),
+//                                () -> method.getParent().addBefore(newComment, method)
+//                        );
+//                    });
+//                });
+//            }, ModalityState.defaultModalityState());
+//        });
+//    }
+
+
+
+//    public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            WriteAction.run(() -> {
+//                PsiDocumentManager.getInstance(project).commitAllDocuments();
+//                WriteCommandAction.runWriteCommandAction(project, () -> {
+//                    PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
+//                    PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+//
+//                    Optional<PsiComment> oldCommentOptional = findMethodComment(method);
+//                    oldCommentOptional.ifPresentOrElse(
+//                            oldComment -> oldComment.replace(newComment),
+//                            () -> method.getParent().addBefore(newComment, method));
+//                });
+//            });
+//        }, ModalityState.defaultModalityState());
+//    }
+
+
+
+//    public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
+//        ApplicationManager.getApplication().invokeLater(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
+//            PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
+//            PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
+//
+//            Optional<PsiComment> oldCommentOptional = findMethodComment(method);
+//            oldCommentOptional.ifPresentOrElse(
+//                    oldComment -> oldComment.replace(newComment),
+//                    () -> method.getParent().addBefore(newComment, method));
+//        }), ModalityState.defaultModalityState());
+//    }
 
     public void updateMethodCommentMap(PsiMethod stackMethod, String methodComment) {
         methodComments.computeIfAbsent(getMethodUniqueKey(stackMethod), k -> methodComment);

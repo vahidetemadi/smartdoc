@@ -4,7 +4,7 @@ plugins {
   id("maven-publish")
   id("org.jetbrains.kotlin.jvm") version "1.9.23"
   id("org.jetbrains.intellij.platform") version "2.0.1"
-  id("org.jetbrains.intellij.platform.migration") version "2.0.1"
+  //id("org.jetbrains.intellij.platform.migration") version "2.0.1"
 }
 
 group = "com.vahid.plugin"
@@ -19,15 +19,17 @@ repositories {
 
 dependencies {
   intellijPlatform {
-    intellijIdeaCommunity("2024.2.1")
+    intellijIdeaCommunity("2024.3.1")
     bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
-    create("IC", "2024.2.1")
+    create("IC", "2024.3.1")
     instrumentationTools()
 
   }
-  implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
+    implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
   implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
   implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
+  implementation("com.squareup.okhttp3:okhttp:4.10.0")
+  implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
 }
 
 tasks {

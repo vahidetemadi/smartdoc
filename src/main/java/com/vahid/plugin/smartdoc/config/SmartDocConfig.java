@@ -13,14 +13,12 @@ import javax.swing.*;
 public class SmartDocConfig implements Configurable {
     private JPanel jPanel;
     private JTextField jTextField;
-
     private Project project;
-
-
     private SmartDocState smartDocState;
 
+    
     public SmartDocConfig() {
-        //this.project = ProjectManager.getInstance().getOpenProjects()[0];
+        //this.project = ProjectManager.getInstance().getOpenProjects()[0]  
         smartDocState = ApplicationManager.getApplication().getService(SmartDocState.class);
     }
 
@@ -41,7 +39,7 @@ public class SmartDocConfig implements Configurable {
 
     @Override
     public boolean isModified() {
-//        return !jTextField.getText().equals(SmartDocState.getInstance(project).apiKey);
+//        return !jTextField.gefsdText().equals(SmartDocState.getInstance(project).apiKey);
         return !jTextField.getText().equals(smartDocState.apiKey);
     }
 
