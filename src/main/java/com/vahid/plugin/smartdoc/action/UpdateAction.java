@@ -58,33 +58,26 @@ public class UpdateAction extends AnAction {
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 Stack<PsiMethod> methodStack = stackThreadLocal.get();
                 try {
-                    ReadAction.nonBlocking(() -> {
-                        int offset = editor.getCaretModel().getOffset();
-                        PsiElement elementAtCaret = psiFile.findElementAt(offset);
-                        PsiMethod method = PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
-                        // Adding the root method (the current one)
-                        methodStack.add(method);
-                        // Starting from the current method to iterate in a DFS manner
-                        iterateOverMethods(method, methodStack);
+                    PsiMethod method = getMethod(editor, psiFile);
+                    // Adding the root method (the current one)
+                    methodStack.add(method);
+                    // Starting from the current method to iterate in a DFS manner
+                    iterateOverMethods(method, methodStack);
 
-                        // Iterate over stack collection and apply method update in case the method does not have a comment yet!
-                        while (!methodStack.isEmpty()) {
-                            PsiMethod stackMethod = methodStack.pop();
-                            List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
-                            Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
-                            String methodComment = methodCommentOptional
-                                    .map(PsiComment::getText)
-                                    .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
-                            if (methodStack.isEmpty()) {
-                                methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
-                            } else {
-                                methodService.updateMethodCommentMap(stackMethod, methodComment);
-                            }
+                    // Iterate over stack collection and apply method update in case the method does not have a comment yet!
+                    while (!methodStack.isEmpty()) {
+                        PsiMethod stackMethod = methodStack.pop();
+                        List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
+                        Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
+                        String methodComment = methodCommentOptional
+                                .map(PsiComment::getText)
+                                .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
+                        if (methodStack.isEmpty()) {
+                            methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
+                        } else {
+                            methodService.updateMethodCommentMap(stackMethod, methodComment);
                         }
-                    }).inSmartMode(project) // Ensures indexing is finished
-                            .expireWhen(() -> project.isDisposed()) // Avoids running after project is closed
-                            .coalesceBy(this) // Prevents redundant executions
-                            .submit(AppExecutorUtil.getAppExecutorService()); // Runs on a background thread pool
+                    }
                 } finally {
                     stackThreadLocal.remove();
                 }
@@ -126,6 +119,14 @@ public class UpdateAction extends AnAction {
 //            }
 //        }.queue();
 
+    }
+
+    private PsiMethod getMethod(Editor editor, PsiFile psiFile) {
+        return ReadAction.compute(() -> {
+            int offset = editor.getCaretModel().getOffset();
+            PsiElement elementAtCaret = psiFile.findElementAt(offset);
+            return  PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
+        });
     }
 
     private void iterateOverMethods(PsiMethod method, Stack<PsiMethod> methodStack) {

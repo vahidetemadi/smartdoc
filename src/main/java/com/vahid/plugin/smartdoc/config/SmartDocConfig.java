@@ -18,7 +18,7 @@ public class SmartDocConfig implements Configurable {
 
     
     public SmartDocConfig() {
-        //this.project = ProjectManager.getInstance().getOpenProjects()[0]  
+        //this.project = ProjectManager.getInstance().getOpenProjects()[0]
         smartDocState = ApplicationManager.getApplication().getService(SmartDocState.class);
     }
 

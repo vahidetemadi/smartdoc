@@ -1,6 +1,7 @@
 package com.vahid.plugin.smartdoc.service;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -28,7 +29,7 @@ public class RemoteGAService {
     private MethodService methodService;
     public RemoteGAService() {
         //this.project = ProjectManager.getInstance().getOpenProjects()[0];
-//        this.openAiService = new OpenAiService(SmartDocState.getInstance(project).apiKey);
+//       this.openAiService = new OpenAiService(SmartDocState.getInstance(project).apiKey);
         //this.openAiService = new OpenAiService(ApplicationManager.getApplication().getService(SmartDocState.class).apiKey);
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
     }
@@ -50,16 +51,18 @@ public class RemoteGAService {
     }
     
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
-        String template = "Produce Java method conventional comment for method: {0}, given explanations for nested method calls as follow:\n" +
-            " {1}";
-        List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
-                .filter(Objects::nonNull)
-                .map(methodCallExpression -> String.join(" with method comment:", List.of(methodCallExpression.getMethodExpression().getReferenceName(),
-                        methodService.getMethodComment(methodCallExpression.resolveMethod()))))
-                .collect(Collectors.toList());
+        return ReadAction.compute(() -> {
+            String template = "Produce Java method conventional comment for method: {0}, given explanations for nested method calls as follow:\n" +
+                    " {1}";
+            List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
+                    .filter(Objects::nonNull)
+                    .map(methodCallExpression -> String.join(" with method comment:", List.of(methodCallExpression.getMethodExpression().getReferenceName(),
+                            methodService.getMethodComment(methodCallExpression.resolveMethod()))))
+                    .collect(Collectors.toList());
 
-        String joinedMethodCalls = String.join(" ,and", nestedMethodCallComment);
-        return MessageFormat.format(template, superMethod.getText(), joinedMethodCalls);
+            String joinedMethodCalls = String.join(" ,and", nestedMethodCallComment);
+            return MessageFormat.format(template, superMethod.getText(), joinedMethodCalls);
+        });
     }
 
 

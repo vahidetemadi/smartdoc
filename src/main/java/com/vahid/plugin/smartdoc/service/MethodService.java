@@ -21,19 +21,19 @@ public final class MethodService {
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
-        method.accept(new JavaRecursiveElementVisitor() {
-            @Override
-            public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
-                super.visitMethodCallExpression(expression);
-                PsiMethod calledMethod = expression.resolveMethod();
-                if (calledMethod != null) {
-                    PsiClass calledClass = calledMethod.getContainingClass();
-                    if (calledClass != null && isInProject(calledClass)) {
-                        methodCalls.add(expression);
-                    }
+        ReadAction.run(() -> method.accept(new JavaRecursiveElementVisitor() {
+        @Override
+        public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
+            super.visitMethodCallExpression(expression);
+            PsiMethod calledMethod = expression.resolveMethod();
+            if (calledMethod != null) {
+                PsiClass calledClass = calledMethod.getContainingClass();
+                if (calledClass != null && isInProject(calledClass)) {
+                    methodCalls.add(expression);
                 }
             }
-        });
+        }
+        }));
         return methodCalls;
     }
 
@@ -44,26 +44,28 @@ public final class MethodService {
     }
 
     public Optional<PsiComment> findMethodComment(PsiMethod method) {
-        // Check for a PsiDocComment directly attached to the method
-        PsiDocComment docComment = method.getDocComment();
-        if (docComment != null) {
-            return Optional.ofNullable(docComment);
-        }
-
-        // Look for other comments (e.g., single line or block comments) preceding the method
-        PsiElement element = method.getPrevSibling();
-        while (element != null) {
-            if (element instanceof PsiComment) {
-                return Optional.of((PsiComment) element);
+        return ReadAction.compute(() -> {
+            // Check for a PsiDocComment directly attached to the method
+            PsiDocComment docComment = method.getDocComment();
+            if (docComment != null) {
+                return Optional.ofNullable(docComment);
             }
-            // Skip whitespace and move to the previous sibling
-            if (!(element instanceof PsiWhiteSpace)) {
-                break;
-            }
-            element = element.getPrevSibling();
-        }
 
-        return Optional.empty();
+            // Look for other comments (e.g., single line or block comments) preceding the method
+            PsiElement element = method.getPrevSibling();
+            while (element != null) {
+                if (element instanceof PsiComment) {
+                    return Optional.of((PsiComment) element);
+                }
+                // Skip whitespace and move to the previous sibling
+                if (!(element instanceof PsiWhiteSpace)) {
+                    break;
+                }
+                element = element.getPrevSibling();
+            }
+
+            return Optional.empty();
+        });
     }
 
     public String getMethodComment(PsiMethod psiMethod) {
@@ -71,13 +73,11 @@ public final class MethodService {
     }
 
     public void replaceMethodComment(PsiMethod method, String newCommentText, Project project) {
-        System.out.println("Start reading foemr doc");
         // Read PSI safely in a background thread
         Optional<PsiComment> oldCommentOptional = findMethodComment(method);
 
         // Switch to UI Thread for PSI modification
         ApplicationManager.getApplication().invokeLater(() -> {
-            System.out.println("Start writing doc");
             WriteAction.run(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
                 PsiDocumentManager.getInstance(project).commitAllDocuments(); // Sync document
 
@@ -152,8 +152,9 @@ public final class MethodService {
     }
 
     public static String getMethodUniqueKey(PsiMethod psiMethod) {
-        PsiClass psiClass = psiMethod.getContainingClass();
-        String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
-        return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY);
+        return ReadAction.compute(() -> {PsiClass psiClass = psiMethod.getContainingClass();
+            String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
+            return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY);
+        });
     }
 }

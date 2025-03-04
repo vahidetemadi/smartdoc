@@ -19,6 +19,7 @@ public final class SmartDocState implements PersistentStateComponent<SmartDocSta
 //    public static SmartDocState getInstance(@Nullable Project project) {
 //        return project.getService(SmartDocState.class);
 //    }
+
     @Override
     public @Nullable SmartDocState getState() {
         return this;
