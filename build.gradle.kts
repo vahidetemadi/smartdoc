@@ -26,10 +26,10 @@ dependencies {
 
   }
     implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
-  implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
-  implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
-  implementation("com.squareup.okhttp3:okhttp:4.10.0")
-  implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
+    implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
+    implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
 }
 
 tasks {

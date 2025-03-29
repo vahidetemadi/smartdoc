@@ -52,7 +52,7 @@ public class UpdateAction extends AnAction {
             return;
         }
 
-        new Task.Backgroundable(project, "Updating Comment", false) {
+        new Task.Backgroundable(project, "Updating Comment", true) {
 
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
