@@ -64,7 +64,7 @@ public class UpdateAction extends AnAction {
                     // Starting from the current method to iterate in a DFS manner
                     iterateOverMethods(method, methodStack);
 
-                    // Iterate over stack collection and apply method update in case the method does not have a comment yet!
+                    // Iterate over the thread scoped stack collection and apply method update in case the method does not have a comment yet!
                     while (!methodStack.isEmpty()) {
                         PsiMethod stackMethod = methodStack.pop();
                         List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
