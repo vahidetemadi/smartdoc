@@ -59,7 +59,7 @@ public class UpdateAction extends AnAction {
                 Stack<PsiMethod> methodStack = stackThreadLocal.get();
                 try {
                     PsiMethod method = getMethod(editor, psiFile);
-                    
+
                     // Adding the root method (the current one)
                     methodStack.add(method);
 
