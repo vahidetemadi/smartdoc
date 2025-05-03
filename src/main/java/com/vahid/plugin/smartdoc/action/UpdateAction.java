@@ -4,27 +4,20 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.application.WriteAction;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.psi.*;
-import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.util.concurrency.AppExecutorUtil;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
-import com.vahid.plugin.smartdoc.service.RemoteGAServiceOkHttp;
-import org.apache.logging.log4j.util.Strings;
+import com.vahid.plugin.smartdoc.service.RemoteGAServiceLangChainOllama;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateAction extends AnAction {
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
@@ -35,7 +28,7 @@ public class UpdateAction extends AnAction {
 
     public UpdateAction() {
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
-        this.remoteGAService = ApplicationManager.getApplication().getService(RemoteGAServiceOkHttp.class);
+        this.remoteGAService = ApplicationManager.getApplication().getService(RemoteGAServiceLangChainOllama.class);
     }
 
     @Override
@@ -137,8 +130,11 @@ public class UpdateAction extends AnAction {
             return;
         }
         for (PsiMethodCallExpression expression : expressions) {
-            methodStack.add(expression.resolveMethod());
-            iterateOverMethods(expression.resolveMethod(), methodStack);
+            AtomicReference<PsiMethod> psiMethodRef = new AtomicReference<>();
+            ReadAction.run(() -> psiMethodRef.set(expression.resolveMethod()));
+            PsiMethod psiMethod = psiMethodRef.get();
+            methodStack.add(psiMethod);
+            iterateOverMethods(psiMethod, methodStack);
         }
     }
 }
