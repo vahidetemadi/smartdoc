@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
   id("java")
@@ -15,9 +16,9 @@ version = "1.0.0"
 repositories {
   mavenCentral()
   maven (url = "https://jitpack.io")
-  maven ( url = "https://www.jetbrains.com/intellij-repository/releases")
-  maven ( url = "https://www.jetbrains.com/intellij-repository/snapshots")
-  maven ( url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+  maven (url = "https://www.jetbrains.com/intellij-repository/releases")
+  maven (url = "https://www.jetbrains.com/intellij-repository/snapshots")
+  maven (url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
   intellijPlatform {
     defaultRepositories()
   }
@@ -28,7 +29,7 @@ dependencies {
     intellijIdeaCommunity("2025.1")
     bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
     create("IC", "2025.1")
-
+    testFramework(TestFrameworkType.Plugin.Java)
   }
     implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
     implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
@@ -43,15 +44,14 @@ dependencies {
 
     // For testing
     testImplementation("org.assertj:assertj-core:3.27.2")
-    testImplementation("org.mockito:mockito-all:1.10.19")
+    testImplementation("org.mockito:mockito-core:5.17.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.17.0")
     testImplementation("org.junit.platform:junit-platform-launcher:1.10.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("com.intellij.remoterobot:remote-robot:0.11.16")
     testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.16")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
-    testImplementation("com.jetbrains.intellij.platform:test-framework:251.23774.435")
-    testImplementation(kotlin("test"))
 }
 
 tasks {
@@ -85,5 +85,8 @@ tasks {
 
   publishPlugin {
     token.set(System.getenv("PUBLISH_TOKEN"))
+  }
+  test {
+    useJUnitPlatform()
   }
 }

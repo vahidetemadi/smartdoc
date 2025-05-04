@@ -37,7 +37,7 @@ public final class MethodService {
         return methodCalls;
     }
 
-    private boolean isInProject(PsiClass psiClass) {
+    public boolean isInProject(PsiClass psiClass) {
         Project project = psiClass.getProject();
         VirtualFile classFile = psiClass.getContainingFile().getVirtualFile();
         return classFile != null && ProjectRootManager.getInstance(project).getFileIndex().isInSourceContent(classFile);
