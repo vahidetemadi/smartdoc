@@ -11,9 +11,11 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
 import com.vahid.plugin.smartdoc.service.RemoteGAServiceLangChainOllama;
+import com.vahid.plugin.smartdoc.service.RemoteGAServiceOkHttp;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -21,9 +23,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateAction extends AnAction {
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
-
-    private MethodService methodService;
-    private RemoteGAService remoteGAService;
+    private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
+    private static final Integer MAX_RETRY_COUNT = 3;
+    private final MethodService methodService;
+    private final RemoteGAService remoteGAService;
 
 
     public UpdateAction() {
@@ -45,7 +48,7 @@ public class UpdateAction extends AnAction {
             return;
         }
 
-        new Task.Backgroundable(project, "Updating Comment", true) {
+        new Task.Backgroundable(project, "Updating comment", true) {
 
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
@@ -68,7 +71,16 @@ public class UpdateAction extends AnAction {
                                 .map(PsiComment::getText)
                                 .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
                         if (methodStack.isEmpty()) {
-                            methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
+                            ScopedValue.where(RETRY_COUNT, 0)
+                                            .run(() -> {
+                                                try {
+                                                    String comment = getMethodCommentWithRetry(stackMethod, firstLevelMethodCalls);
+                                                    methodService.replaceMethodComment(stackMethod, comment, e.getProject());
+                                                } catch (Exception ex) {
+                                                    throw new RuntimeException(ex);
+                                                }
+                                            });
+                            //methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
                         } else {
                             methodService.updateMethodCommentMap(stackMethod, methodComment);
                         }
@@ -77,6 +89,10 @@ public class UpdateAction extends AnAction {
                     stackThreadLocal.remove();
                 }
             }
+            @Override
+            public void onCancel() {
+            }
+
         }.queue();
 
 //        new Task.Backgroundable(project, "Updating Comment", false) {
@@ -116,11 +132,23 @@ public class UpdateAction extends AnAction {
 
     }
 
+    private String getMethodCommentWithRetry(PsiMethod stackMethod, List<PsiMethodCallExpression> firstLevelMethodCalls) throws Exception {
+        int attempt = RETRY_COUNT.get();
+        while (attempt < MAX_RETRY_COUNT) {
+            String newComment = remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls);
+            if (MethodService.matchesJavaDocFormat(newComment)) {
+                return newComment;
+            }
+            attempt++;
+        }
+        throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
+    }
+
     private PsiMethod getMethod(Editor editor, PsiFile psiFile) {
         return ReadAction.compute(() -> {
             int offset = editor.getCaretModel().getOffset();
             PsiElement elementAtCaret = psiFile.findElementAt(offset);
-            return  PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
+            return PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
         });
     }
 

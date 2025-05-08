@@ -55,23 +55,19 @@ dependencies {
 }
 
 tasks {
-  // Set the JVM compatibility versions
   withType<JavaCompile> {
     sourceCompatibility = "21"
     targetCompatibility = "21"
+    options.compilerArgs.add("--enable-preview")
   }
-//  withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-//    kotlinOptions.jvmTarget = "21"
-//  }
 
   kotlin {
     jvmToolchain(21)
     compilerOptions {
       freeCompilerArgs.add("-Xjvm-default=all")
-      jvmTarget.set(JvmTarget.JVM_21) // adjust this too
+      jvmTarget.set(JvmTarget.JVM_21)
     }
   }
-
 
   intellijPlatform {
     buildSearchableOptions = true
@@ -86,7 +82,13 @@ tasks {
   publishPlugin {
     token.set(System.getenv("PUBLISH_TOKEN"))
   }
+
   test {
     useJUnitPlatform()
+    jvmArgs = listOf("--enable-preview")
+  }
+
+  runIde {
+    jvmArgs = listOf("--enable-preview")
   }
 }

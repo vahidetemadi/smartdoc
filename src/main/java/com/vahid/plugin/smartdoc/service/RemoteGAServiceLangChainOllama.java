@@ -38,7 +38,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
         this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).apiKey;
         this.model = OllamaChatModel.builder()
                 .baseUrl(API_URL)
-                .modelName("gemma3:1b")
+                .modelName("deepseek-r1:1.5b")
                 .temperature(0.0)
                 .timeout(Duration.ofSeconds(120))
                 .logRequests(true)

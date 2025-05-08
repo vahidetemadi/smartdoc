@@ -9,15 +9,21 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 @Service(Service.Level.APP)
 public final class MethodService {
     private static final Map<String, String> methodComments = new ConcurrentHashMap<>();
+    private static final Pattern JAVADOC_METHOD_PATTERN = Pattern.compile(
+            "/\\*\\*\\s*" +                                      // /** start
+                    "(?:\\*\\s*.*\\s*)*" +                               // optional description lines
+                    "(?:\\*\\s*@param\\s+\\w+\\s+.*\\s*)*" +             // zero or more @param
+                    "(?:\\*\\s*@return\\s+.*\\s*)?" +                    // optional @return
+                    "(?:\\*\\s*@(throws|exception)\\s+\\w+\\s+.*\\s*)*" + // optional @throws or @exception
+                    "\\*/", Pattern.DOTALL);
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
@@ -48,7 +54,7 @@ public final class MethodService {
             // Check for a PsiDocComment directly attached to the method
             PsiDocComment docComment = method.getDocComment();
             if (docComment != null) {
-                return Optional.ofNullable(docComment);
+                return Optional.of(docComment);
             }
 
             // Look for other comments (e.g., single line or block comments) preceding the method
@@ -79,7 +85,7 @@ public final class MethodService {
         // Switch to UI Thread for PSI modification
         ApplicationManager.getApplication().invokeLater(() -> {
             WriteAction.run(() -> WriteCommandAction.runWriteCommandAction(project, () -> {
-                PsiDocumentManager.getInstance(project).commitAllDocuments(); // Sync document
+                PsiDocumentManager.getInstance(project).commitAllDocuments();
 
                 PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
                 PsiComment newComment = elementFactory.createCommentFromText(newCommentText, null);
@@ -152,9 +158,16 @@ public final class MethodService {
     }
 
     public static String getMethodUniqueKey(PsiMethod psiMethod) {
-        return ReadAction.compute(() -> {PsiClass psiClass = psiMethod.getContainingClass();
+        return ReadAction.compute(() -> {
+            PsiClass psiClass = psiMethod.getContainingClass();
             String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
             return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY);
         });
     }
+
+    public static boolean matchesJavaDocFormat(String comment) {
+        boolean b =  JAVADOC_METHOD_PATTERN.matcher(comment.trim()).matches();
+        return b;
+    }
+
 }
