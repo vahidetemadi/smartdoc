@@ -1,5 +1,6 @@
 package com.vahid.plugin.smartdoc.service;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.PsiMethod;
@@ -8,6 +9,7 @@ import com.intellij.psi.PsiMethodCallExpression;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public abstract class RemoteGAService {
 
@@ -27,7 +29,7 @@ public abstract class RemoteGAService {
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         return ReadAction.compute(() -> {
             String template = """
-                    Produce Java-Doc style method comment for method: {0},
+                    Produce JavaDoc style method comment for method: {0},
                     given explanations for nested method calls as follow: {1}""";
             List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
                     .filter(Objects::nonNull)
@@ -37,7 +39,10 @@ public abstract class RemoteGAService {
                     .toList();
 
             String joinedMethodCalls = String.join(" , and", nestedMethodCallComment);
-            return MessageFormat.format(template, superMethod.getText(), joinedMethodCalls);
+            Optional<String> superMethodTextOptional = Optional.ofNullable(superMethod.getText());
+            return MessageFormat.format(template,
+                    superMethodTextOptional.orElse(methodService.getMethodFullQualifiedName(superMethod)),
+                    joinedMethodCalls);
         });
     }
 

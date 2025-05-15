@@ -136,9 +136,13 @@ public class UpdateAction extends AnAction {
         int attempt = RETRY_COUNT.get();
         while (attempt < MAX_RETRY_COUNT) {
             String newComment = remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls);
-            if (MethodService.matchesJavaDocFormat(newComment)) {
-                return newComment;
+            Optional<String> extractedComment =  MethodService.getMatchedComment(newComment);
+            if (extractedComment.isPresent()) {
+                return extractedComment.get();
             }
+//            if (MethodService.matchesJavaDocFormat(newComment)) {
+//                return newComment;
+//            }
             attempt++;
         }
         throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);

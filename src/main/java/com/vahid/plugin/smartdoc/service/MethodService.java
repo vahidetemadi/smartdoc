@@ -9,10 +9,15 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service(Service.Level.APP)
 public final class MethodService {
@@ -24,6 +29,7 @@ public final class MethodService {
                     "(?:\\*\\s*@return\\s+.*\\s*)?" +                    // optional @return
                     "(?:\\*\\s*@(throws|exception)\\s+\\w+\\s+.*\\s*)*" + // optional @throws or @exception
                     "\\*/", Pattern.DOTALL);
+    private static final Logger log = LoggerFactory.getLogger(MethodService.class);
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
@@ -157,17 +163,61 @@ public final class MethodService {
         methodComments.computeIfAbsent(getMethodUniqueKey(stackMethod), k -> methodComment);
     }
 
+//    public static String getMethodUniqueKey(PsiMethod psiMethod) {
+//        return ReadAction.compute(() -> {
+//            PsiClass psiClass = psiMethod.getContainingClass();
+//            String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
+//            return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.UNKNOWN);
+//        });
+//    }
+
     public static String getMethodUniqueKey(PsiMethod psiMethod) {
         return ReadAction.compute(() -> {
             PsiClass psiClass = psiMethod.getContainingClass();
             String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
-            return qualifiedClassName + "#" + psiMethod.getSignature(PsiSubstitutor.EMPTY);
+            String methodName = psiMethod.getName();
+            String parameterTypes = Arrays.stream(psiMethod.getParameterList().getParameters())
+                    .map(p -> p.getType().getCanonicalText())
+                    .collect(Collectors.joining(", "));
+            return STR."\{qualifiedClassName}#\{methodName}(\{parameterTypes})";
         });
     }
 
-    public static boolean matchesJavaDocFormat(String comment) {
-        boolean b =  JAVADOC_METHOD_PATTERN.matcher(comment.trim()).matches();
-        return b;
+    @Nullable
+    public String getMethodFullQualifiedName(@NotNull PsiMethod psiMethod) {
+        PsiClass containingClass = psiMethod.getContainingClass();
+        if (containingClass == null || containingClass.getQualifiedName() == null) {
+            return null; // Cannot determine
+        }
+
+        String classFqn = containingClass.getQualifiedName();
+        String kind;
+
+        if (containingClass.isEnum()) {
+            kind = "enum";
+        } else if (containingClass.isRecord()) {
+            kind = "record";
+        } else if (containingClass.isInterface()) {
+            kind = "interface";
+        } else if (containingClass.isAnnotationType()) {
+            kind = "annotation";
+        } else {
+            kind = "class";
+        }
+
+        return STR."\{psiMethod.getName()}() from \{kind} \{classFqn}";
     }
 
+    public static boolean matchesJavaDocFormat(String comment) {
+        return JAVADOC_METHOD_PATTERN.matcher(comment.trim()).matches();
+    }
+
+    public static Optional<String> getMatchedComment(String comment) {
+         Matcher matcher = JAVADOC_METHOD_PATTERN.matcher(comment);
+         if (matcher.find()) {
+             return Optional.of(matcher.group());
+         } else {
+             return Optional.empty();
+         }
+    }
 }

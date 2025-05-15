@@ -51,7 +51,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                 {
                     "model": "deepseek-chat",
                     "messages": [
-                        {"role": "system", "content": "Be very concise and only return method comment (include what nested methods do all as single explain, but do not name them  or do not say method to) and not the method itself and without java tag and only comment"},
+                        {"role": "system", "content": "Be very concise and only return method comment, in JavaDoc style (include what nested methods do all as single explain, but do not name them  or do not say method to) and not the method itself and without java tag and only comment"},
                         {"role": "user", "content": %s}
                     ],
                     "stream": false

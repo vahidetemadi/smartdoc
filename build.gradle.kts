@@ -16,9 +16,19 @@ version = "1.0.0"
 repositories {
   mavenCentral()
   maven (url = "https://jitpack.io")
+  maven (url = "https://mvnrepository.com/artifact/com.jetbrains.intellij.platform/test-framework")
+  maven (url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
   maven (url = "https://www.jetbrains.com/intellij-repository/releases")
   maven (url = "https://www.jetbrains.com/intellij-repository/snapshots")
-  maven (url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+  maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+  maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
+  maven("https://cache-redirector.jetbrains.com/repo1.maven.org/maven2")
+  maven("https://packages.jetbrains.team/maven/p/kpm/public")
+  maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
+  maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
+  maven("https://packages.jetbrains.team/maven/p/kpm/public")
+  maven("https://www.jetbrains.com/intellij-repository/releases")
+  maven("https://cache-redirector.jetbrains.com/www.jetbrains.com/intellij-repository/releases")
   intellijPlatform {
     defaultRepositories()
   }
@@ -29,8 +39,10 @@ dependencies {
     intellijIdeaCommunity("2025.1")
     bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
     create("IC", "2025.1")
+    testFramework(TestFrameworkType.Platform)
     testFramework(TestFrameworkType.Plugin.Java)
   }
+    implementation(kotlin("stdlib"))
     implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
     implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
     implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
@@ -41,18 +53,41 @@ dependencies {
     implementation("dev.langchain4j:langchain4j:1.0.0-beta3")
     implementation("dev.langchain4j:langchain4j-open-ai:1.0.0-beta3")
     implementation("dev.langchain4j:langchain4j-ollama:1.0.0-beta3")
+    implementation("org.slf4j:slf4j-api:2.0.17")
 
     // For testing
-    testImplementation("org.assertj:assertj-core:3.27.2")
     testImplementation("org.mockito:mockito-core:5.17.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.17.0")
     testImplementation("org.junit.platform:junit-platform-launcher:1.10.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
-    testImplementation("com.intellij.remoterobot:remote-robot:0.11.16")
-    testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.16")
+    testImplementation("com.intellij.remoterobot:remote-robot:0.11.18")
+    testImplementation("com.intellij.remoterobot:remote-fixtures:0.11.18")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
+    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.2")
+//    testImplementation("com.jetbrains.intellij.platform:test-framework:251.23774.444") {
+//      exclude(group = "ai.grazie.spell.*")
+//      exclude(group = "ai.grazie.nlp.*")
+//    }
+
+//  testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
+//  testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.3")
+//  testImplementation("org.mockito:mockito-core:5.6.0")
+//  testImplementation("org.mockito:mockito-junit-jupiter:5.6.0")
+//  testImplementation("org.assertj:assertj-core:3.27.2")
+
 }
+// TODO force all kotlin deps to match version 2.1.20
+//configurations.all {
+//  resolutionStrategy.eachDependency {
+//    if (requested.group == "org.jetbrains.kotlin") {
+//      useVersion("2.1.20")
+//    }
+//  }
+//}
 
 tasks {
   withType<JavaCompile> {

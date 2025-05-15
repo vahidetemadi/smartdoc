@@ -61,8 +61,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
 
         UserMessage userMessage = UserMessage.from(prompt);
         SystemMessage systemMessage = new SystemMessage("""
-            You are a Java code assistant. When given a method and its context, generate only and only a concise JavaDoc-style comment.
-            Be concise and avoid repeating the method name.
+            You are a Java code assistant. When given a method and its context, generate only and only a concise method comment.
         """);
 
 
@@ -78,8 +77,6 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
         ChatResponse chatResponse = model.chat(chatRequest);
         try {
             ReturnCommentDto dto = new ObjectMapper().readValue(chatResponse.aiMessage().text(), ReturnCommentDto.class);
-            System.out.println(dto.toString());
-            System.out.println("Here is the method comment: " +  dto.javaDocStyleComment() + "----for prompt: " + prompt);
             return dto.javaDocStyleComment();
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Something went wrong ");

@@ -13,8 +13,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class MethodServiceTest {
@@ -43,5 +48,18 @@ class MethodServiceTest {
             boolean result = methodService.isInProject(psiClass);
             assertTrue(result);
         }
+    }
+
+    @Test
+    void givenJavaMethodCommentPattern_whenSendATestWithAMatch_returnOnlyMatchedComment() {
+        String inputComment = """
+                /**
+                 * Returns a list of all Type enum values with HTTP status OK. Internally checks if input is null and handles nested checks. This is new commentmethod111.
+                 */
+                """;
+
+        Optional<String> polishedMethodComment = MethodService.getMatchedComment(inputComment);
+
+        assertThat(polishedMethodComment).isNotEmpty();
     }
 }
