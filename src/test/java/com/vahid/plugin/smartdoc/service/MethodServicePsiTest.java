@@ -3,6 +3,7 @@ package com.vahid.plugin.smartdoc.service;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.testFramework.fixtures.*;
+import org.intellij.lang.annotations.Language;
 
 public class MethodServicePsiTest extends LightJavaCodeInsightFixtureTestCase {
 
@@ -12,7 +13,7 @@ public class MethodServicePsiTest extends LightJavaCodeInsightFixtureTestCase {
     }
 
     public void test_given_methodWithSignature_when_askForItsKey_then_returnAsExpected() {
-        String code = """
+        @Language("JAVA") String code = """
                 package test;
                 public class Sample {
                     public void myMethod(int a) {

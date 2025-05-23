@@ -29,7 +29,7 @@ import java.util.List;
 public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
     private final ChatLanguageModel model;
 
-    private static final Logger log = LoggerFactory.getLogger(RemoteGAServiceLangChainOllama.class);
+    private static final Logger logger = LoggerFactory.getLogger(RemoteGAServiceLangChainOllama.class);
     private final String apiKey;
     private static final String API_URL = "http://localhost:11434";
 

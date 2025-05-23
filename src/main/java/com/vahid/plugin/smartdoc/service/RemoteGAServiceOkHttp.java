@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service(Service.Level.APP)
 public final class RemoteGAServiceOkHttp extends RemoteGAService{
-    private static final Logger log = LoggerFactory.getLogger(RemoteGAServiceOkHttp.class);
+    private static final Logger logger = LoggerFactory.getLogger(RemoteGAServiceOkHttp.class);
     private final String apiKey;
     private static final String API_URL = "https://api.deepseek.com/chat/completions";
 
@@ -57,9 +57,8 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                     "stream": false
                 }
                 """, formattedPrompt);
-        System.out.println(String.format("Here is the  request: %s", json));
-        System.out.println(String.format("Here is the key: %s", apiKey));
-        RequestBody requestBody = RequestBody.create(MediaType.get("application/json"), json);
+        logger.info("Here is the  request: {}", json);
+        RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json"));
         Request request = new Request.Builder()
                 .url(API_URL)
                 .addHeader("Authorization", "Bearer " + apiKey)
@@ -72,7 +71,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                 throw new IOException("Unexpected code " + response);
             }
 
-
+            assert response.body() != null;
             String responseBodyStr = response.body().string();
             System.out.println("Raw response: " + responseBodyStr);
 

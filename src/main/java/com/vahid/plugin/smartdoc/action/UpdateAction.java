@@ -17,11 +17,14 @@ import com.vahid.plugin.smartdoc.service.RemoteGAService;
 import com.vahid.plugin.smartdoc.service.RemoteGAServiceLangChainOllama;
 import com.vahid.plugin.smartdoc.service.RemoteGAServiceOkHttp;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UpdateAction extends AnAction {
+    Logger logger = LoggerFactory.getLogger(UpdateAction.class);
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
     private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
     private static final Integer MAX_RETRY_COUNT = 3;
@@ -31,7 +34,7 @@ public class UpdateAction extends AnAction {
 
     public UpdateAction() {
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
-        this.remoteGAService = ApplicationManager.getApplication().getService(RemoteGAServiceLangChainOllama.class);
+        this.remoteGAService = ApplicationManager.getApplication().getService(RemoteGAServiceOkHttp.class);
     }
 
     @Override
@@ -67,9 +70,6 @@ public class UpdateAction extends AnAction {
                         PsiMethod stackMethod = methodStack.pop();
                         List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
                         Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
-                        String methodComment = methodCommentOptional
-                                .map(PsiComment::getText)
-                                .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
                         if (methodStack.isEmpty()) {
                             ScopedValue.where(RETRY_COUNT, 0)
                                             .run(() -> {
@@ -82,6 +82,9 @@ public class UpdateAction extends AnAction {
                                             });
                             //methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
                         } else {
+                            String methodComment = methodCommentOptional
+                                    .map(PsiComment::getText)
+                                    .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
                             methodService.updateMethodCommentMap(stackMethod, methodComment);
                         }
                     }
@@ -90,7 +93,8 @@ public class UpdateAction extends AnAction {
                 }
             }
             @Override
-            public void onCancel() {
+            public void onCancel() {;
+                logger.info("Canceled by user on thread: {}", Thread.currentThread());
             }
 
         }.queue();
@@ -140,9 +144,6 @@ public class UpdateAction extends AnAction {
             if (extractedComment.isPresent()) {
                 return extractedComment.get();
             }
-//            if (MethodService.matchesJavaDocFormat(newComment)) {
-//                return newComment;
-//            }
             attempt++;
         }
         throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);

@@ -54,6 +54,7 @@ dependencies {
     implementation("dev.langchain4j:langchain4j-open-ai:1.0.0-beta3")
     implementation("dev.langchain4j:langchain4j-ollama:1.0.0-beta3")
     implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("org.slf4j:slf4j-simple:2.0.17")
 
     // For testing
     testImplementation("org.mockito:mockito-core:5.17.0")
@@ -94,6 +95,7 @@ tasks {
     sourceCompatibility = "21"
     targetCompatibility = "21"
     options.compilerArgs.add("--enable-preview")
+    options.compilerArgs.add("-Xlint:deprecation")
   }
 
   kotlin {
@@ -124,6 +126,6 @@ tasks {
   }
 
   runIde {
-    jvmArgs = listOf("--enable-preview")
+    jvmArgs = listOf("--enable-preview", "-ea")
   }
 }
