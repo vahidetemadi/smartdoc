@@ -26,7 +26,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
 
     public RemoteGAServiceOkHttp() {
         super();
-        this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).apiKey;
+        this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey;
     }
 
 

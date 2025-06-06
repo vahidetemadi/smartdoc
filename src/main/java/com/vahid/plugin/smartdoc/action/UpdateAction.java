@@ -9,13 +9,12 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
-import com.vahid.plugin.smartdoc.service.RemoteGAServiceLangChainOllama;
-import com.vahid.plugin.smartdoc.service.RemoteGAServiceOkHttp;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UpdateAction extends AnAction {
+public abstract class UpdateAction extends AnAction {
     Logger logger = LoggerFactory.getLogger(UpdateAction.class);
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
     private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
@@ -32,9 +31,9 @@ public class UpdateAction extends AnAction {
     private final RemoteGAService remoteGAService;
 
 
-    public UpdateAction() {
+    protected UpdateAction(RemoteGAService remoteGAService) {
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
-        this.remoteGAService = ApplicationManager.getApplication().getService(RemoteGAServiceOkHttp.class);
+        this.remoteGAService = remoteGAService;
     }
 
     @Override
@@ -52,18 +51,18 @@ public class UpdateAction extends AnAction {
         }
 
         new Task.Backgroundable(project, "Updating comment", true) {
-
+            private PsiMethod rootMethod;
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 Stack<PsiMethod> methodStack = stackThreadLocal.get();
                 try {
-                    PsiMethod method = getMethod(editor, psiFile);
+                    rootMethod = getMethod(editor, psiFile);
 
                     // Adding the root method (the current one)
-                    methodStack.add(method);
+                    methodStack.add(rootMethod);
 
                     // Starting from the current method to iterate in a DFS manner
-                    iterateOverMethods(method, methodStack);
+                    iterateOverMethods(rootMethod, methodStack);
 
                     // Iterate over the thread scoped stack collection and apply method update in case the method does not have a comment yet!
                     while (!methodStack.isEmpty()) {
@@ -93,48 +92,41 @@ public class UpdateAction extends AnAction {
                 }
             }
             @Override
-            public void onCancel() {;
+            public void onCancel() {
                 logger.info("Canceled by user on thread: {}", Thread.currentThread());
             }
 
+            @Override
+            public void onSuccess() {
+                    if (rootMethod == null) return;
+
+                    Optional<PsiComment> commentOpt = methodService.findMethodComment(rootMethod);
+                    if (commentOpt.isPresent()) {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            showRatingPopup(rootMethod);
+                        });
+                    }
+            }
         }.queue();
-
-//        new Task.Backgroundable(project, "Updating Comment", false) {
-//
-//            @Override
-//            public void run(@NotNull ProgressIndicator progressIndicator) {
-//                ReadAction.run(() -> {
-//                    int offset = editor.getCaretModel().getOffset();
-//                    PsiElement elementAtCaret = psiFile.findElementAt(offset);
-//                    PsiMethod method = PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
-//                    Stack<PsiMethod> methodStack = stackThreadLocal.get();
-//                    try {
-//                        // Adding the root method (the current one)
-//                        methodStack.add(method);
-//                        // Starting from the current method to iterate in a DFS manner
-//                        iterateOverMethods(method, methodStack);
-//                        // Iterate over stack collection and apply method update in case the method does not have a comment yet!
-//                        while (!methodStack.isEmpty()) {
-//                            PsiMethod stackMethod = methodStack.pop();
-//                            List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
-//                            Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
-//                            String methodComment = methodCommentOptional
-//                                    .map(PsiComment::getText)
-//                                    .orElseGet(() -> remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls));
-//                            if (methodStack.isEmpty()) {
-//                                methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
-//                            } else {
-//                                methodService.updateMethodCommentMap(stackMethod, methodComment);
-//                            }
-//                        }
-//                    } finally {
-//                        stackThreadLocal.remove();
-//                    }
-//                });
-//            }
-//        }.queue();
-
     }
+
+    private void showRatingPopup(PsiMethod method) {
+        // Simple example using Messages.showIdeaMessageDialog or custom JDialog with buttons
+
+        String[] options = {"⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"};
+        int rating = Messages.showChooseDialog(
+                "Rate the comment for method: " + method.getName(),
+                "Rate Method Comment",
+                options,
+                options[0],
+                Messages.getQuestionIcon()
+        );
+
+//        if (rating >= 0) {
+//            sendRatingToServer(method, rating + 1); // rating is zero-based index, convert to 1-5
+//        }
+    }
+
 
     private String getMethodCommentWithRetry(PsiMethod stackMethod, List<PsiMethodCallExpression> firstLevelMethodCalls) throws Exception {
         int attempt = RETRY_COUNT.get();

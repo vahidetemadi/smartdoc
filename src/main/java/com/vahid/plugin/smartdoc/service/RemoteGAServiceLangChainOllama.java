@@ -30,12 +30,10 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
     private final ChatLanguageModel model;
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteGAServiceLangChainOllama.class);
-    private final String apiKey;
     private static final String API_URL = "http://localhost:11434";
 
     public RemoteGAServiceLangChainOllama() {
         super();
-        this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).apiKey;
         this.model = OllamaChatModel.builder()
                 .baseUrl(API_URL)
                 .modelName("deepseek-r1:1.5b")

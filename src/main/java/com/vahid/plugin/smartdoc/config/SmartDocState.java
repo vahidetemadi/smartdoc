@@ -15,10 +15,8 @@ import org.jetbrains.annotations.Nullable;
 )
 @Service(Service.Level.APP)
 public final class SmartDocState implements PersistentStateComponent<SmartDocState> {
-    public String apiKey = "";
-//    public static SmartDocState getInstance(@Nullable Project project) {
-//        return project.getService(SmartDocState.class);
-//    }
+    public String DeepSeekAPIKey = "";
+    public String OtherAPIKey = "";
 
     @Override
     public @Nullable SmartDocState getState() {

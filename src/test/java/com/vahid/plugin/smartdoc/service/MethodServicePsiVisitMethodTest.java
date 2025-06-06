@@ -5,10 +5,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
-import groovy.util.logging.Slf4j;
 import org.intellij.lang.annotations.Language;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -42,6 +39,6 @@ public class MethodServicePsiVisitMethodTest extends LightJavaCodeInsightFixture
 
     @Override
     protected void tearDown() throws Exception{
-        myFixture.tearDown();
+        super.tearDown();
     }
 }

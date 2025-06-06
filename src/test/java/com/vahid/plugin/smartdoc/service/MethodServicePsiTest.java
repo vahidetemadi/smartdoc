@@ -29,6 +29,6 @@ public class MethodServicePsiTest extends LightJavaCodeInsightFixtureTestCase {
 
     @Override
     protected void tearDown() throws Exception {
-        myFixture.tearDown();
+        super.tearDown();
     }
 }

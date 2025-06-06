@@ -6,52 +6,59 @@ import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.NlsContexts;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
 public class SmartDocConfig implements Configurable {
     private JPanel jPanel;
-    private JTextField jTextField;
-    private Project project;
-    private SmartDocState smartDocState;
+    private JTextField jTextFieldDeepSeek;
+    private JTextField jTextFieldOther;
+    private final SmartDocState smartDocState;
 
     
     public SmartDocConfig() {
-        //this.project = ProjectManager.getInstance().getOpenProjects()[0]
         smartDocState = ApplicationManager.getApplication().getService(SmartDocState.class);
     }
 
     @Override
     public @NlsContexts.ConfigurableName String getDisplayName() {
-        return "SmardDoc App Settings";
+        return "SmartDoc App Settings";
     }
 
     @Override
     public @Nullable JComponent createComponent() {
         jPanel = new JPanel();
-//        jTextField = new JTextField(SmartDocState.getInstance(project).apiKey, 20);
-        jTextField = new JTextField(smartDocState.apiKey, 20);
-        jPanel.add(new JLabel("API Key:"));
-        jPanel.add(jTextField);
+
+        jPanel.add(new JLabel("DeepSeek API Key:"));
+        jTextFieldDeepSeek = new JTextField(smartDocState.DeepSeekAPIKey, 20);
+        jPanel.add(jTextFieldDeepSeek);
+
+        jPanel.add(Box.createVerticalStrut(8));
+
+        jPanel.add(new JLabel("Other API Key:"));
+        jTextFieldOther = new JTextField(smartDocState.OtherAPIKey, 20);
+        jPanel.add(jTextFieldOther);
+
         return jPanel;
     }
 
     @Override
     public boolean isModified() {
-//        return !jTextField.gefsdText().equals(SmartDocState.getInstance(project).apiKey);
-        return !jTextField.getText().equals(smartDocState.apiKey);
+        return !jTextFieldDeepSeek.getText().equals(smartDocState.DeepSeekAPIKey)
+                || !jTextFieldOther.getText().equals(smartDocState.OtherAPIKey);
     }
 
     @Override
     public void apply() throws ConfigurationException {
-//        SmartDocState.getInstance(project).apiKey = jTextField.getText();
-        smartDocState.apiKey = jTextField.getText();
+        smartDocState.DeepSeekAPIKey = jTextFieldDeepSeek.getText();
+        smartDocState.OtherAPIKey = jTextFieldOther.getText();
     }
 
     @Override
     public void reset() {
-//        jTextField.setText(SmartDocState.getInstance(project).apiKey);
-        jTextField.setText(smartDocState.apiKey);
+        jTextFieldDeepSeek.setText(smartDocState.DeepSeekAPIKey);
+        jTextFieldOther.setText(smartDocState.OtherAPIKey);
     }
 }

@@ -31,11 +31,26 @@
       <applicationConfigurable instance="com.vahid.plugin.smartdoc.config.SmartDocConfig"/>
       <registryKeyBean key="kotlin.mpp.tests.force.gradle" defaultValue="false" overrides="true"/>
   </extensions>
-    <actions>
-        <action id="com.vahid.plugin.smartdoc.action.UpdateAction" class="com.vahid.plugin.smartdoc.action.UpdateAction"
-                text="UpdateComment">
-            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorCopy"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G"/>
-        </action>
-    </actions>
+  <actions>
+      <group id="com.vahid.plugin.smartdoc.group.UpdateGroup"
+             text="UpdateComment"
+             popup="true">
+          <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorCopy"/>
+      </group>
+<!--      <action id="com.vahid.plugin.smartdoc.action.UpdateAction" class="com.vahid.plugin.smartdoc.action.UpdateAction"-->
+<!--                text="UpdateComment">-->
+<!--          <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorCopy"/>-->
+<!--          <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G"/>-->
+<!--      </action>-->
+      <action id="com.vahid.plugin.smartdoc.action.DeepSeekUpdateAction" class="com.vahid.plugin.smartdoc.action.DeepSeekUpdateAction"
+              text="DeepSeek">
+          <add-to-group group-id="com.vahid.plugin.smartdoc.group.UpdateGroup"/>
+          <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt D"/>
+      </action>
+      <action id="com.vahid.plugin.smartdoc.action.OllamaUpdateAction" class="com.vahid.plugin.smartdoc.action.OllamaUpdateAction"
+              text="OllamaLangChain">
+          <add-to-group group-id="com.vahid.plugin.smartdoc.group.UpdateGroup"/>
+          <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt O"/>
+      </action>
+  </actions>
 </idea-plugin>
