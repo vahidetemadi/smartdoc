@@ -104,6 +104,12 @@ public abstract class UpdateAction extends AnAction {
                     if (commentOpt.isPresent()) {
                         ApplicationManager.getApplication().invokeLater(() -> {
                             showRatingPopup(rootMethod);
+
+//                            InlayModel inlayModel = editor.getInlayModel();
+//                            int offset = comment.getTextOffset() + comment.getTextLength();
+//
+//                            inlayModel.addInlineElement(offset, true, new StarRatingRenderer(method));
+
                         });
                     }
             }
