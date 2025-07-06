@@ -24,8 +24,11 @@ public class MethodServicePsiVisitMethodTest extends LightJavaCodeInsightFixture
                 public class Sample {
                     public void methodA() {
                         methodB();
+                        methodC();
                     }
                     public void methodB() {
+                    }
+                    public void methodC() {
                     }
                 }
                 """;
@@ -35,6 +38,7 @@ public class MethodServicePsiVisitMethodTest extends LightJavaCodeInsightFixture
         PsiMethod psiMethod = psiClass.findMethodsByName("methodA", false)[0];
         List<PsiMethodCallExpression> psiCallExpressions = methodService.findMethodCalls(psiMethod);
         assertNotEmpty(psiCallExpressions);
+        assertSize(2, psiCallExpressions);
     }
 
     @Override

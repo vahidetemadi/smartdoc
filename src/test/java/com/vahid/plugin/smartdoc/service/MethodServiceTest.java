@@ -1,11 +1,16 @@
 package com.vahid.plugin.smartdoc.service;
 
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiFile;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.light.LightParameter;
+import net.bytebuddy.description.method.ParameterList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -59,5 +64,38 @@ class MethodServiceTest {
         Optional<String> polishedMethodComment = MethodService.getMatchedComment(inputComment);
 
         assertThat(polishedMethodComment).isNotEmpty();
+    }
+
+    @Test
+    void givenPsiMethod_whenAskForMethodUniqueKey_itReturnsTheKey() {
+        PsiClass psiClass = mock(PsiClass.class);
+        when(psiClass.getQualifiedName()).thenReturn("ClassA");
+        PsiMethod psiMethod = mock(PsiMethod.class);
+        when(psiMethod.getContainingClass()).thenReturn(psiClass);
+        when(psiMethod.getName()).thenReturn("methodA01");
+        PsiParameterList parameterList = mock(PsiParameterList.class);
+        PsiParameter psiParameter = mock(PsiParameter.class);
+        PsiType psiType = mock(PsiType.class);
+        when(psiType.getCanonicalText()).thenReturn("java.lang.String");
+        when(psiParameter.getType()).thenReturn(psiType);
+        when(parameterList.getParameters()).thenReturn(new PsiParameter[]{psiParameter});
+
+        when(psiMethod.getParameterList()).thenReturn(null);
+        try (MockedStatic<ApplicationManager> applicationManagerMockedStatic = Mockito.mockStatic(ApplicationManager.class)) {
+            Application application = mock(Application.class);
+            applicationManagerMockedStatic.when(ApplicationManager::getApplication).thenReturn(application);
+
+            when(application.runReadAction(any(ThrowableComputable.class)))
+                    .thenAnswer(invocation -> {
+                        ThrowableComputable<?, ?> computable = invocation.getArgument(0);
+                        return computable.compute();
+                    });
+
+            when(psiMethod.getParameterList()).thenReturn(parameterList);
+            String methodUniqueKey = MethodService.getMethodUniqueKey(psiMethod);
+
+            assertThat(methodUniqueKey).isNotEmpty();
+            assertThat(methodUniqueKey).isEqualTo("ClassA#methodA01(java.lang.String)");
+        }
     }
 }

@@ -29,6 +29,10 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
         this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey;
     }
 
+    public RemoteGAServiceOkHttp(String apiKey) {
+        super();
+        this.apiKey = apiKey;
+    }
 
     @Override
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {

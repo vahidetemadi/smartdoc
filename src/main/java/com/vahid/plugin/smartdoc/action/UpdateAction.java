@@ -12,6 +12,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.vahid.plugin.smartdoc.UI.FeedbackManager;
+import com.vahid.plugin.smartdoc.UI.StarRatingFeedback;
 import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
@@ -33,6 +35,11 @@ public abstract class UpdateAction extends AnAction {
 
     protected UpdateAction(RemoteGAService remoteGAService) {
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
+        this.remoteGAService = remoteGAService;
+    }
+
+    protected UpdateAction(RemoteGAService remoteGAService, MethodService methodService) {
+        this.methodService = methodService;
         this.remoteGAService = remoteGAService;
     }
 
@@ -99,40 +106,10 @@ public abstract class UpdateAction extends AnAction {
             @Override
             public void onSuccess() {
                     if (rootMethod == null) return;
-
-                    Optional<PsiComment> commentOpt = methodService.findMethodComment(rootMethod);
-                    if (commentOpt.isPresent()) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            showRatingPopup(rootMethod);
-
-//                            InlayModel inlayModel = editor.getInlayModel();
-//                            int offset = comment.getTextOffset() + comment.getTextLength();
-//
-//                            inlayModel.addInlineElement(offset, true, new StarRatingRenderer(method));
-
-                        });
-                    }
+                FeedbackManager.queueFeedback(project, rootMethod);
             }
         }.queue();
     }
-
-    private void showRatingPopup(PsiMethod method) {
-        // Simple example using Messages.showIdeaMessageDialog or custom JDialog with buttons
-
-        String[] options = {"⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"};
-        int rating = Messages.showChooseDialog(
-                "Rate the comment for method: " + method.getName(),
-                "Rate Method Comment",
-                options,
-                options[0],
-                Messages.getQuestionIcon()
-        );
-
-//        if (rating >= 0) {
-//            sendRatingToServer(method, rating + 1); // rating is zero-based index, convert to 1-5
-//        }
-    }
-
 
     private String getMethodCommentWithRetry(PsiMethod stackMethod, List<PsiMethodCallExpression> firstLevelMethodCalls) throws Exception {
         int attempt = RETRY_COUNT.get();
@@ -147,7 +124,7 @@ public abstract class UpdateAction extends AnAction {
         throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
     }
 
-    private PsiMethod getMethod(Editor editor, PsiFile psiFile) {
+    public PsiMethod getMethod(Editor editor, PsiFile psiFile) {
         return ReadAction.compute(() -> {
             int offset = editor.getCaretModel().getOffset();
             PsiElement elementAtCaret = psiFile.findElementAt(offset);

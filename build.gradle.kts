@@ -55,6 +55,12 @@ dependencies {
     implementation("dev.langchain4j:langchain4j-ollama:1.0.0-beta3")
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("org.slf4j:slf4j-simple:2.0.17")
+    implementation("org.springframework:spring-webflux:6.0.10") {
+      exclude(group = "com.fasterxml.jackson.core")
+      exclude(group = "com.fasterxml.jackson.module")
+    }
+    implementation("io.projectreactor:reactor-core:3.5.7")
+    implementation("io.projectreactor.netty:reactor-netty-http:1.1.9")
 
     // For testing
     testImplementation("org.mockito:mockito-core:5.17.0")
