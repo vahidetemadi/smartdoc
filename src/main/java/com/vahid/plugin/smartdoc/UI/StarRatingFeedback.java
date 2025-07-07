@@ -16,10 +16,21 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StarRatingFeedback {
 
+    private StarRatingFeedback() {
+    }
+
+    private static final Set<String> ratedMethods = ConcurrentHashMap.newKeySet();
+
     public static void show(Editor editor, PsiMethod psiMethod) {
+        String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
+        if (ratedMethods.contains(methodId)) {
+            return; // Already rated, skip showing balloon
+        }
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         panel.setBorder(JBUI.Borders.empty(5));
         panel.add(new JLabel("Rate this comment: "));
@@ -53,8 +64,9 @@ public class StarRatingFeedback {
                             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .bodyValue("""
                                     {
-                                        "rate": "%s"
-                                    }""".formatted(starIndex))
+                                        "rate": "%s",
+                                        "method_size": "%s"
+                                    }""".formatted(starIndex, psiMethod.getName()))
                             .retrieve()
                             .bodyToMono(Void.class)
                                     .subscribe(unsend -> {},
@@ -62,8 +74,10 @@ public class StarRatingFeedback {
                                             () -> System.out.println("Post completed successfully"));
 
                     System.out.println("User rated: " + starIndex + " stars, for method: " + psiMethod.getName());
+                    ratedMethods.add(methodId);
                     if (balloonRef[0] != null) {
                         balloonRef[0].hide(); // Dismiss the balloon
+                        balloonRef[0].isDisposed();
                     }
                 }
             });
@@ -71,32 +85,6 @@ public class StarRatingFeedback {
             stars[i] = star;
             panel.add(star);
         }
-
-//        int offset = psiMethod.getTextOffset();
-//        Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
-//
-//        Runnable showBalloonAtOffset = () -> {
-//            if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
-//                balloonRef[0].hide();
-//            }
-//
-//            RelativePoint relativePoint01 = new RelativePoint(editor.getContentComponent(), xy);
-//
-//            Balloon balloon = JBPopupFactory.getInstance()
-//                    .createBalloonBuilder(panel)
-//                    .setHideOnClickOutside(false)
-//                    .setHideOnKeyOutside(false)
-//                    .setCloseButtonEnabled(true)
-//                    .setFillColor(JBColor.PanelBackground)
-//                    .createBalloon();
-//
-//            balloonRef[0] = balloon;
-//            balloon.show(relativePoint01, Balloon.Position.below);
-//        };
-//
-//        showBalloonAtOffset.run();
-//
-//        editor.getScrollingModel().addVisibleAreaListener(e -> showBalloonAtOffset.run());
 
         final int debounceDelayMs = 150;
 
@@ -127,6 +115,10 @@ public class StarRatingFeedback {
         showBalloonAtOffset.run();
 
         editor.getScrollingModel().addVisibleAreaListener(e -> {
+            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
+                debounceTimer.stop();
+                return;
+            }
             debounceTimer.stop();
             debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
             debounceTimer.start();
@@ -138,4 +130,9 @@ public class StarRatingFeedback {
             stars[i].setText(i < count ? "★" : "☆");
         }
     }
+
+    public static boolean isRated(String methodId) {
+        return ratedMethods.contains(methodId);
+    }
+
 }

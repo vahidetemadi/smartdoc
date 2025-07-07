@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FeedbackManager {
@@ -19,6 +20,7 @@ public class FeedbackManager {
     private FeedbackManager() {
     }
     private static final ConcurrentHashMap<VirtualFile, List<PsiMethod>> pendingFeedback = new ConcurrentHashMap<>();
+    private static final Set<Project> initializedProjects = ConcurrentHashMap.newKeySet();
 
     public static void queueFeedback(Project project, PsiMethod psiMethod) {
         VirtualFile file = psiMethod.getContainingFile().getVirtualFile();
@@ -44,20 +46,48 @@ public class FeedbackManager {
         });
 
         // Subscribe to file switch once (per project)
-        project.getMessageBus().connect().subscribe(
-                FileEditorManagerListener.FILE_EDITOR_MANAGER,
-                new FileEditorManagerListener() {
-                    @Override
-                    public void selectionChanged(@NotNull FileEditorManagerEvent event) {
-                        VirtualFile selected = event.getNewFile();
-                        if (selected != null && pendingFeedback.containsKey(selected)) {
-                            List<PsiMethod> psiMethods = pendingFeedback.remove(selected);
-                            if (psiMethods != null) {
-                                showFeedbackList(project, psiMethods);
+        if (initializedProjects.add(project)) {
+            project.getMessageBus().connect().subscribe(
+                    FileEditorManagerListener.FILE_EDITOR_MANAGER,
+                    new FileEditorManagerListener() {
+                        @Override
+                        public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile selected) {
+                            if (selected != null && pendingFeedback.containsKey(selected)) {
+                                List<PsiMethod> psiMethods = pendingFeedback.get(selected);
+                                if (psiMethods != null) {
+                                    psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
+                                            psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
+
+                                    if (psiMethods.isEmpty()) {
+                                        pendingFeedback.remove(selected);
+                                    } else {
+                                        pendingFeedback.put(selected, psiMethods);
+                                        showFeedbackList(project, psiMethods);
+                                    }
+                                }
                             }
                         }
-                    }
-                });
+
+                        @Override
+                        public void selectionChanged(@NotNull FileEditorManagerEvent event) {
+                            VirtualFile selected = event.getNewFile();
+                            if (selected != null && pendingFeedback.containsKey(selected)) {
+                                List<PsiMethod> psiMethods = pendingFeedback.get(selected);
+                                if (psiMethods != null) {
+                                    psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
+                                            psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
+
+                                    if (psiMethods.isEmpty()) {
+                                        pendingFeedback.remove(selected);
+                                    } else {
+                                        pendingFeedback.put(selected, psiMethods);
+                                        showFeedbackList(project, psiMethods);
+                                    }
+                                }
+                            }
+                        }
+                    });
+        }
     }
 
     private static void showFeedbackList(Project project, List<PsiMethod> psiMethods) {
@@ -66,9 +96,13 @@ public class FeedbackManager {
             Editor editor = manager.getSelectedTextEditor();
             if (editor != null) {
                 for (PsiMethod psiMethod : psiMethods) {
-                    StarRatingFeedback.show(editor, psiMethod);
+                    String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
+                    if (!StarRatingFeedback.isRated(methodId)) {
+                        StarRatingFeedback.show(editor, psiMethod);
+                    }
                 }
             }
         });
     }
+
 }
