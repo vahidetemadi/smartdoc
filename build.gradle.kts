@@ -47,7 +47,7 @@ dependencies {
     implementation("com.theokanning.openai-gpt3-java:client:0.18.2")
     implementation("com.theokanning.openai-gpt3-java:service:0.18.2")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
+    //implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
     implementation("org.apache.logging.log4j:log4j-api:2.20.0")
     implementation("org.apache.logging.log4j:log4j-core:2.20.0")
     implementation("dev.langchain4j:langchain4j:1.0.0-beta3")
@@ -58,9 +58,14 @@ dependencies {
     implementation("org.springframework:spring-webflux:6.0.10") {
       exclude(group = "com.fasterxml.jackson.core")
       exclude(group = "com.fasterxml.jackson.module")
+      exclude(group = "com.fasterxml.jackson.datatype")
     }
     implementation("io.projectreactor:reactor-core:3.5.7")
     implementation("io.projectreactor.netty:reactor-netty-http:1.1.9")
+
+    // Bring your own complete Jackson stack
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
 
     // For testing
     testImplementation("org.mockito:mockito-core:5.17.0")

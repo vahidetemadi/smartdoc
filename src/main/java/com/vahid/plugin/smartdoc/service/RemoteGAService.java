@@ -29,7 +29,7 @@ public abstract class RemoteGAService {
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         return ReadAction.compute(() -> {
             String template = """
-                    Produce JavaDoc style method comment for method: {0},
+                    Produce maximum of three lines JavaDoc style method comment for method: {0},
                     given explanations for nested method calls as follow: {1}""";
             List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
                     .filter(Objects::nonNull)

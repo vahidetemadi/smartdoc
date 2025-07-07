@@ -7,6 +7,8 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -18,10 +20,6 @@ import java.awt.event.MouseEvent;
 public class StarRatingFeedback {
 
     public static void show(Editor editor, PsiMethod psiMethod) {
-        int offset = psiMethod.getTextOffset();
-        Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
-        RelativePoint relativePoint = new RelativePoint(editor.getContentComponent(), xy);
-
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         panel.setBorder(JBUI.Borders.empty(5));
         panel.add(new JLabel("Rate this comment: "));
@@ -49,11 +47,13 @@ public class StarRatingFeedback {
                 public void mouseClicked(MouseEvent e) {
                     updateStars(stars, starIndex);
 
-                    WebClient.create("http://localhost:8000").post()
+                    WebClient.create("http://localhost:8000")
+                            .post()
                             .uri("/send-feedback")
+                            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .bodyValue("""
                                     {
-                                        "rate": %s
+                                        "rate": "%s"
                                     }""".formatted(starIndex))
                             .retrieve()
                             .bodyToMono(Void.class)
@@ -72,18 +72,65 @@ public class StarRatingFeedback {
             panel.add(star);
         }
 
-        Balloon balloon = JBPopupFactory.getInstance()
-                .createBalloonBuilder(panel)
-                .setHideOnClickOutside(false)
-                .setHideOnKeyOutside(false)
-                .setCloseButtonEnabled(true)
-                .setFillColor(JBColor.PanelBackground)
-                .createBalloon();
+//        int offset = psiMethod.getTextOffset();
+//        Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
+//
+//        Runnable showBalloonAtOffset = () -> {
+//            if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
+//                balloonRef[0].hide();
+//            }
+//
+//            RelativePoint relativePoint01 = new RelativePoint(editor.getContentComponent(), xy);
+//
+//            Balloon balloon = JBPopupFactory.getInstance()
+//                    .createBalloonBuilder(panel)
+//                    .setHideOnClickOutside(false)
+//                    .setHideOnKeyOutside(false)
+//                    .setCloseButtonEnabled(true)
+//                    .setFillColor(JBColor.PanelBackground)
+//                    .createBalloon();
+//
+//            balloonRef[0] = balloon;
+//            balloon.show(relativePoint01, Balloon.Position.below);
+//        };
+//
+//        showBalloonAtOffset.run();
+//
+//        editor.getScrollingModel().addVisibleAreaListener(e -> showBalloonAtOffset.run());
 
-        balloonRef[0] = balloon;
+        final int debounceDelayMs = 150;
 
-        // Proper use of RelativePoint:
-        balloon.show(relativePoint, Balloon.Position.below);
+        final javax.swing.Timer debounceTimer = new javax.swing.Timer(debounceDelayMs, null);
+        debounceTimer.setRepeats(false);
+
+        Runnable showBalloonAtOffset = () -> {
+            if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
+                balloonRef[0].hide();
+            }
+
+            int offset = psiMethod.getTextOffset();
+            Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
+            RelativePoint relativePoint = new RelativePoint(editor.getContentComponent(), xy);
+
+            Balloon balloon = JBPopupFactory.getInstance()
+                    .createBalloonBuilder(panel)
+                    .setHideOnClickOutside(false)
+                    .setHideOnKeyOutside(false)
+                    .setCloseButtonEnabled(true)
+                    .setFillColor(JBColor.PanelBackground)
+                    .createBalloon();
+
+            balloonRef[0] = balloon;
+            balloon.show(relativePoint, Balloon.Position.below);
+        };
+
+        showBalloonAtOffset.run();
+
+        editor.getScrollingModel().addVisibleAreaListener(e -> {
+            debounceTimer.stop();
+            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
+            debounceTimer.start();
+        });
     }
 
     private static void updateStars(JLabel[] stars, int count) {
