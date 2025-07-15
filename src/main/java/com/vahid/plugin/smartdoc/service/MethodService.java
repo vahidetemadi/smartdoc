@@ -179,7 +179,7 @@ public final class MethodService {
             String parameterTypes = Arrays.stream(psiMethod.getParameterList().getParameters())
                     .map(p -> p.getType().getCanonicalText())
                     .collect(Collectors.joining(", "));
-            return STR."\{qualifiedClassName}#\{methodName}(\{parameterTypes})";
+            return String.format("%s#%s(%s)", qualifiedClassName, methodName, parameterTypes);
         });
     }
 
@@ -205,7 +205,7 @@ public final class MethodService {
             kind = "class";
         }
 
-        return STR."\{psiMethod.getName()}() from \{kind} \{classFqn}";
+        return String.format("%s() from %s %s", psiMethod.getName(), kind, classFqn);
     }
 
     public static boolean matchesJavaDocFormat(String comment) {

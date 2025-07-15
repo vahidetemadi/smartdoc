@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StarRatingFeedback {
 
+    private static final ConcurrentHashMap<String, Balloon> activeBalloons = new ConcurrentHashMap<>();
     private StarRatingFeedback() {
     }
 
@@ -78,6 +79,7 @@ public class StarRatingFeedback {
                     if (balloonRef[0] != null) {
                         balloonRef[0].hide(); // Dismiss the balloon
                         balloonRef[0].isDisposed();
+                        activeBalloons.remove(methodId);
                     }
                 }
             });
@@ -109,6 +111,7 @@ public class StarRatingFeedback {
                     .createBalloon();
 
             balloonRef[0] = balloon;
+            activeBalloons.put(methodId, balloon);
             balloon.show(relativePoint, Balloon.Position.below);
         };
 
@@ -135,4 +138,18 @@ public class StarRatingFeedback {
         return ratedMethods.contains(methodId);
     }
 
+    public static void dismissAllBalloons() {
+        activeBalloons.forEach((id, balloon) -> {
+            if (balloon != null && !balloon.isDisposed()) {
+                balloon.hide();
+                balloon.isDisposed();
+            }
+        });
+        activeBalloons.clear();
+    }
+
+
+    public static void discardIsRated(String s) {
+        ratedMethods.remove(s);
+    }
 }

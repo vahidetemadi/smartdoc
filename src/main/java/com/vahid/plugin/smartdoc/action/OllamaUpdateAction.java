@@ -5,6 +5,7 @@ import com.vahid.plugin.smartdoc.service.RemoteGAService;
 import com.vahid.plugin.smartdoc.service.RemoteGAServiceLangChainOllama;
 
 public class OllamaUpdateAction extends UpdateAction{
+
     protected OllamaUpdateAction() {
         super(ApplicationManager.getApplication().getService(RemoteGAServiceLangChainOllama.class));
     }

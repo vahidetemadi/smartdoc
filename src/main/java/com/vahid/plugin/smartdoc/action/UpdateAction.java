@@ -1,5 +1,6 @@
 package com.vahid.plugin.smartdoc.action;
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -8,12 +9,11 @@ import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.vahid.plugin.smartdoc.UI.FeedbackManager;
-import com.vahid.plugin.smartdoc.UI.StarRatingFeedback;
 import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public abstract class UpdateAction extends AnAction {
+public abstract class UpdateAction extends AnAction implements DumbAware {
     Logger logger = LoggerFactory.getLogger(UpdateAction.class);
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
     private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
@@ -41,6 +41,30 @@ public abstract class UpdateAction extends AnAction {
     protected UpdateAction(RemoteGAService remoteGAService, MethodService methodService) {
         this.methodService = methodService;
         this.remoteGAService = remoteGAService;
+    }
+
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        e.getPresentation().setEnabledAndVisible(false);
+
+        Project project = e.getProject();
+        Editor editor = e.getData(CommonDataKeys.EDITOR);
+        PsiFile psiFile = e.getData(CommonDataKeys.PSI_FILE);
+
+        if (project == null || editor == null || psiFile == null) return;
+
+        int offset = editor.getCaretModel().getOffset();
+        PsiElement element = psiFile.findElementAt(offset);
+
+        PsiMethod method = PsiTreeUtil.getParentOfType(element, PsiMethod.class);
+        if (method != null) {
+            e.getPresentation().setEnabledAndVisible(true);
+        }
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     @Override

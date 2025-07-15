@@ -2,6 +2,12 @@ package com.vahid.plugin.smartdoc.UI;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.event.EditorFactoryEvent;
+import com.intellij.openapi.editor.event.EditorFactoryListener;
+import com.intellij.openapi.editor.event.VisibleAreaEvent;
+import com.intellij.openapi.editor.event.VisibleAreaListener;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
@@ -29,16 +35,9 @@ public class FeedbackManager {
                 ? fileEditorManager.getSelectedFiles()[0]
                 : null;
 
-        // Case 1: File is already active → show immediately
-        if (file.equals(currentFile)) {
-            Editor editor = fileEditorManager.getSelectedTextEditor();
-            if (editor != null) {
-                StarRatingFeedback.show(editor, psiMethod);
-                return;
-            }
-        }
+        StarRatingFeedback.discardIsRated(psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName());
 
-        // Case 2: File not visible → queue feedback
+        // File may not be visible → queue feedback
         pendingFeedback.compute(file, (vf, list) -> {
             if (list == null) list = new ArrayList<>();
             list.add(psiMethod);
@@ -52,41 +51,78 @@ public class FeedbackManager {
                     new FileEditorManagerListener() {
                         @Override
                         public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile selected) {
-                            if (selected != null && pendingFeedback.containsKey(selected)) {
-                                List<PsiMethod> psiMethods = pendingFeedback.get(selected);
-                                if (psiMethods != null) {
-                                    psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
-                                            psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
-
-                                    if (psiMethods.isEmpty()) {
-                                        pendingFeedback.remove(selected);
-                                    } else {
-                                        pendingFeedback.put(selected, psiMethods);
-                                        showFeedbackList(project, psiMethods);
-                                    }
-                                }
-                            }
+                            handleEvent(source.getProject(), selected);
                         }
 
                         @Override
                         public void selectionChanged(@NotNull FileEditorManagerEvent event) {
                             VirtualFile selected = event.getNewFile();
-                            if (selected != null && pendingFeedback.containsKey(selected)) {
-                                List<PsiMethod> psiMethods = pendingFeedback.get(selected);
-                                if (psiMethods != null) {
-                                    psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
-                                            psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
-
-                                    if (psiMethods.isEmpty()) {
-                                        pendingFeedback.remove(selected);
-                                    } else {
-                                        pendingFeedback.put(selected, psiMethods);
-                                        showFeedbackList(project, psiMethods);
-                                    }
-                                }
+                            if (selected != null) {
+                                handleEvent(event.getManager().getProject(), selected);
                             }
                         }
                     });
+
+//            EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
+//                @Override
+//                public void editorCreated(@NotNull EditorFactoryEvent event) {
+//                    System.out.println("Edidor is active");
+//                    Editor editor = event.getEditor();
+//                    VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
+//                    Project editorProject = editor.getProject();
+//
+//                    if (file != null && editorProject != null && editorProject.equals(project)) {
+//                        editor.getScrollingModel().addVisibleAreaListener(new VisibleAreaListener() {
+//                            private boolean handled = false;
+//
+//                            @Override
+//                            public void visibleAreaChanged(@NotNull VisibleAreaEvent e) {
+//                                if (!handled) {
+//                                    handled = true;
+//                                    handleEvent(editorProject, file); // your re-open logic
+//                                }
+//                            }
+//                        }, project);
+//                    }
+//                }
+//            }, project);
+
+            System.out.println("Done with all regs");
+        }
+
+        // File is already active → show immediately
+        if (file.equals(currentFile)) {
+            Editor editor = fileEditorManager.getSelectedTextEditor();
+            if (editor != null) {
+                StarRatingFeedback.show(editor, psiMethod);
+            }
+        }
+
+    }
+
+
+    private static void handleEvent(@NotNull Project project, @NotNull VirtualFile selected) {
+        StarRatingFeedback.dismissAllBalloons();
+        if (selected != null && pendingFeedback.containsKey(selected)) {
+            // In case a method can be repeated in terms of rating. Replace other similar blocks as well.
+//                                List<PsiMethod> psiMethods = pendingFeedback.remove(selected);
+//                                if (psiMethods != null) {
+//                                    for (PsiMethod psiMethod : psiMethods) {
+//                                        showFeedbackList(project, psiMethods);
+//                                    }
+//                                }
+            List<PsiMethod> psiMethods = pendingFeedback.get(selected);
+            if (psiMethods != null) {
+                psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
+                        psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
+
+                if (psiMethods.isEmpty()) {
+                    pendingFeedback.remove(selected);
+                } else {
+                    pendingFeedback.put(selected, psiMethods);
+                    showFeedbackList(project, psiMethods);
+                }
+            }
         }
     }
 
@@ -96,6 +132,7 @@ public class FeedbackManager {
             Editor editor = manager.getSelectedTextEditor();
             if (editor != null) {
                 for (PsiMethod psiMethod : psiMethods) {
+                    // Ignore the following two lines, in case repetitive same method rating selected
                     String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
                     if (!StarRatingFeedback.isRated(methodId)) {
                         StarRatingFeedback.show(editor, psiMethod);

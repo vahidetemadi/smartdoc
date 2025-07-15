@@ -7,6 +7,7 @@ plugins {
   id("maven-publish")
   id("org.jetbrains.kotlin.jvm") version "2.1.20"
   id("org.jetbrains.intellij.platform") version "2.5.0"
+  id("com.github.johnrengelman.shadow") version "8.1.1"
   //id("org.jetbrains.intellij.platform.migration") version "2.0.5"
 }
 
@@ -102,6 +103,7 @@ dependencies {
 //}
 
 tasks {
+
   withType<JavaCompile> {
     sourceCompatibility = "21"
     targetCompatibility = "21"
@@ -121,6 +123,36 @@ tasks {
     buildSearchableOptions = true
   }
 
+//  jar {
+//    archiveFileName.set("${project.name}-${project.version}.jar")
+//    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+//    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+//  }
+
+  shadowJar {
+    archiveClassifier.set("")
+  }
+
+//  jar {
+//    enabled = false
+//  }
+
+  prepareSandbox {
+    dependsOn(shadowJar)
+  }
+
+  prepareTestSandbox {
+    dependsOn(shadowJar)
+  }
+
+  build {
+    dependsOn(shadowJar)
+  }
+
+  buildPlugin {
+    dependsOn(shadowJar, test)
+  }
+
   signPlugin {
     certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
     privateKey.set(System.getenv("PRIVATE_KEY"))
@@ -132,6 +164,12 @@ tasks {
   }
 
   test {
+//    doFirst {
+//      if (":buildPlugin" in gradle.startParameter.taskNames) {
+//        outputs.upToDateWhen { false }
+//      }
+//    }
+    outputs.upToDateWhen { false }
     useJUnitPlatform()
     jvmArgs = listOf("--enable-preview")
   }

@@ -27,22 +27,30 @@ import java.util.List;
 
 @Service(Service.Level.APP)
 public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
-    private final ChatLanguageModel model;
+    private volatile ChatLanguageModel model;
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteGAServiceLangChainOllama.class);
     private static final String API_URL = "http://localhost:11434";
 
     public RemoteGAServiceLangChainOllama() {
         super();
-        this.model = OllamaChatModel.builder()
-                .baseUrl(API_URL)
-                .modelName("deepseek-r1:1.5b")
-                .temperature(0.0)
-                .timeout(Duration.ofSeconds(120))
-                .logRequests(true)
-                .build();
     }
 
+
+    private ChatLanguageModel getOrCreateModel() {
+        if (model == null) {
+            synchronized (this) {
+                model = OllamaChatModel.builder()
+                        .baseUrl(API_URL)
+                        .modelName("deepseek-r1:1.5b")
+                        .temperature(0.0)
+                        .timeout(Duration.ofSeconds(120))
+                        .logRequests(true)
+                        .build();
+            }
+        }
+        return model;
+    }
     @Override
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         final String prompt = createPrompt(superMethod, psiMethodCallExpressions);
@@ -72,7 +80,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
                 .parameters(parameters)
                 .build();
 
-        ChatResponse chatResponse = model.chat(chatRequest);
+        ChatResponse chatResponse = getOrCreateModel().chat(chatRequest);
         try {
             ReturnCommentDto dto = new ObjectMapper().readValue(chatResponse.aiMessage().text(), ReturnCommentDto.class);
             return dto.javaDocStyleComment();

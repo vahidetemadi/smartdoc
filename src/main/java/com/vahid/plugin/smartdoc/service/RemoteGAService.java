@@ -1,6 +1,5 @@
 package com.vahid.plugin.smartdoc.service;
 
-import com.google.common.base.Strings;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.PsiMethod;
