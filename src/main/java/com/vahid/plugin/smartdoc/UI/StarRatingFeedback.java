@@ -2,6 +2,7 @@ package com.vahid.plugin.smartdoc.UI;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -37,6 +38,7 @@ public class StarRatingFeedback {
             return; // Already rated, skip showing balloon
         }
         System.out.println("Showing from balloon...");
+        System.out.println("Active balloons..." + activeBalloons.size());
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         panel.setBorder(JBUI.Borders.empty(5));
         panel.add(new JLabel("Rate this comment: "));
@@ -107,17 +109,7 @@ public class StarRatingFeedback {
         closeButton.setBorderPainted(false);
         closeButton.setContentAreaFilled(false);
         closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        closeButton.addActionListener(e -> {
-            System.out.println("Closed via custom X");
-            ratedMethods.add(methodId);
-            if (balloonRef[0] != null) {
-                balloonRef[0].hide();
-                activeBalloons.remove(methodId);
-            }
-        });
-
-        panel.add(closeButton); // Add it somewhere on the top/right
+        panel.add(closeButton);
 
 
         final int debounceDelayMs = 150;
@@ -126,10 +118,27 @@ public class StarRatingFeedback {
         debounceTimer.setRepeats(false);
 
         Runnable showBalloonAtOffset = () -> {
+            System.out.println("Scrolling...");
+//            Balloon existing = activeBalloons.get(methodId);
+//            if (existing != null) {
+//                if (!existing.isDisposed()) {
+//                    System.out.println("Do nothing...");
+//                    return;
+//                } else {
+//                    System.out.println("Stop showing...");
+//                    existing.hide(true);
+//                    existing.dispose();
+//                    activeBalloons.remove(methodId);
+//                }
+//            }
+
             if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
-                balloonRef[0].hide();
+                balloonRef[0].hide(true);
                 balloonRef[0].dispose();
             }
+
+
+            activeBalloons.remove(methodId);
 
             int offset = psiMethod.getTextOffset();
             Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
@@ -145,19 +154,6 @@ public class StarRatingFeedback {
                     .setFillColor(JBColor.PanelBackground)
                     .createBalloon();
 
-//            balloon.addListener(new JBPopupListener() {
-//                @Override
-//                public void onClosed(@NotNull LightweightWindowEvent event) {
-//                    System.out.println("event ok" + event.asBalloon().isDisposed());
-//                    System.out.println("contains" + ratedMethods.contains(methodId));
-//                    if (event.asBalloon().isDisposed() && !ratedMethods.contains(methodId)) {
-//                        System.out.println("Balloon closed by user (X or ESC), marking as rated.");
-//                        ratedMethods.add(methodId);
-//                    }
-//                    activeBalloons.remove(methodId);
-//                }
-//            });
-
             balloonRef[0] = balloon;
             activeBalloons.put(methodId, balloon);
             balloon.show(relativePoint, Balloon.Position.below);
@@ -165,15 +161,55 @@ public class StarRatingFeedback {
 
         showBalloonAtOffset.run();
 
-        editor.getScrollingModel().addVisibleAreaListener(e -> {
-            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
-                debounceTimer.stop();
-                return;
+        VisibleAreaListener[] listenerRef = new VisibleAreaListener[1];
+
+        listenerRef[0] = e -> {
+            if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
+                balloonRef[0].hide();
+                balloonRef[0].dispose();
+                activeBalloons.remove(methodId);
+                editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
             }
-            debounceTimer.stop();
-            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
-            debounceTimer.start();
+        };
+
+        editor.getScrollingModel().addVisibleAreaListener(listenerRef[0]);
+
+
+//        VisibleAreaListener[] listenerRef = new VisibleAreaListener[1];
+//
+//        listenerRef[0] = e -> {
+//            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
+//                debounceTimer.stop();
+//                return;
+//            }
+//            debounceTimer.stop();
+//            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
+//            debounceTimer.start();
+//        };
+
+        editor.getScrollingModel().addVisibleAreaListener(listenerRef[0]);
+
+        closeButton.addActionListener(e -> {
+            ratedMethods.add(methodId);
+            if (balloonRef[0] != null) {
+                System.out.println("Closed via custom X");
+                balloonRef[0].hide();
+                balloonRef[0].dispose();
+                activeBalloons.remove(methodId);
+            }
+
+            editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
         });
+//        editor.getScrollingModel().addVisibleAreaListener(e -> {
+//            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
+//                System.out.println("It stoppped");
+//                debounceTimer.stop();
+//                return;
+//            }
+//            debounceTimer.stop();
+//            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
+//            debounceTimer.start();
+//        });
     }
 
     private static void updateStars(JLabel[] stars, int count) {
@@ -187,17 +223,18 @@ public class StarRatingFeedback {
     }
 
     public static void dismissAllBalloons() {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            activeBalloons.forEach((id, balloon) -> {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            for (Balloon balloon : activeBalloons.values()) {
                 if (balloon != null) {
-                    balloon.hide();
+                    balloon.hide(true); // Force hide
                     balloon.dispose();
                     System.out.println("Hided balloon X");
                 }
-            });
+            }
             activeBalloons.clear();
         });
     }
+
 
 
     public static void discardIsRated(String s) {

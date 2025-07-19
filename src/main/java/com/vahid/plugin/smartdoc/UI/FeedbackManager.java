@@ -116,6 +116,7 @@ public class FeedbackManager {
 //                                    }
 //                                }
             List<PsiMethod> psiMethods = pendingFeedback.get(selected);
+            System.out.println("values are" + pendingFeedback.get(selected).size());
             if (psiMethods != null) {
                 psiMethods.removeIf(psiMethod -> StarRatingFeedback.isRated(
                         psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
@@ -133,7 +134,7 @@ public class FeedbackManager {
     }
 
     private static void showFeedbackList(Project project, List<PsiMethod> psiMethods) {
-        ApplicationManager.getApplication().invokeLater(() -> {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
             FileEditorManager manager = FileEditorManager.getInstance(project);
             Editor editor = manager.getSelectedTextEditor();
             if (editor != null) {
