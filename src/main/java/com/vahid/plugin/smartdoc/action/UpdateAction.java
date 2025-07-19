@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbAware;
@@ -118,7 +119,11 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                             methodService.updateMethodCommentMap(stackMethod, methodComment);
                         }
                     }
-                } finally {
+                } catch (ProcessCanceledException e) {
+                    logger.info("Task canceled by the user!");
+                    throw e;
+                }
+                finally {
                     stackThreadLocal.remove();
                 }
             }

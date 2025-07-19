@@ -49,15 +49,17 @@ public class FeedbackManager {
             project.getMessageBus().connect().subscribe(
                     FileEditorManagerListener.FILE_EDITOR_MANAGER,
                     new FileEditorManagerListener() {
-                        @Override
-                        public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile selected) {
-                            handleEvent(source.getProject(), selected);
-                        }
+//                        @Override
+//                        public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile selected) {
+//                            System.out.println("Entered from open" + selected.getName());
+//                            handleEvent(source.getProject(), selected);
+//                        }
 
                         @Override
                         public void selectionChanged(@NotNull FileEditorManagerEvent event) {
                             VirtualFile selected = event.getNewFile();
                             if (selected != null) {
+                                System.out.println("Handled it!");
                                 handleEvent(event.getManager().getProject(), selected);
                             }
                         }
@@ -103,7 +105,9 @@ public class FeedbackManager {
 
     private static void handleEvent(@NotNull Project project, @NotNull VirtualFile selected) {
         StarRatingFeedback.dismissAllBalloons();
-        if (selected != null && pendingFeedback.containsKey(selected)) {
+        System.out.println("Entered!" + selected.getName());
+        if (pendingFeedback.containsKey(selected)) {
+            System.out.println("Handleing..." + selected.getName());
             // In case a method can be repeated in terms of rating. Replace other similar blocks as well.
 //                                List<PsiMethod> psiMethods = pendingFeedback.remove(selected);
 //                                if (psiMethods != null) {
@@ -117,9 +121,11 @@ public class FeedbackManager {
                         psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName()));
 
                 if (psiMethods.isEmpty()) {
+                    System.out.println("Removing...");
                     pendingFeedback.remove(selected);
                 } else {
                     pendingFeedback.put(selected, psiMethods);
+                    System.out.println("Showing....");
                     showFeedbackList(project, psiMethods);
                 }
             }
