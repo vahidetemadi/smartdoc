@@ -134,7 +134,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
 
             @Override
             public void onSuccess() {
-                    if (rootMethod == null) return;
+                if (rootMethod == null) return;
                 FeedbackManager.queueFeedback(project, rootMethod);
             }
         }.queue();

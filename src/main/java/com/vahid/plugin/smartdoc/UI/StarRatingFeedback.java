@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StarRatingFeedback {
 
     private static final ConcurrentHashMap<String, Balloon> activeBalloons = new ConcurrentHashMap<>();
+
     private StarRatingFeedback() {
     }
 
@@ -35,10 +36,8 @@ public class StarRatingFeedback {
     public static void show(Editor editor, PsiMethod psiMethod) {
         String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
         if (ratedMethods.contains(methodId)) {
-            return; // Already rated, skip showing balloon
+            return;
         }
-        System.out.println("Showing from balloon...");
-        System.out.println("Active balloons..." + activeBalloons.size());
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         panel.setBorder(JBUI.Borders.empty(5));
         panel.add(new JLabel("Rate this comment: "));
@@ -62,41 +61,104 @@ public class StarRatingFeedback {
                     updateStars(stars, 0);
                 }
 
+//                @Override
+//                public void mouseClicked(MouseEvent e) {
+//                    updateStars(stars, starIndex);
+//
+//                    String userFeedback = Messages.showInputDialog(
+//                            "Add optional feedback (or leave blank):",
+//                            "Submit Rating",
+//                            Messages.getQuestionIcon()
+//                    );
+//
+//                    WebClient.create("http://localhost:8000")
+//                            .post()
+//                            .uri("/send-feedback")
+//                            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+//                            .bodyValue("""
+//                                    {
+//                                        "rate": "%s",
+//                                        "method_size": "%s",
+//                                        "comment": "%s"
+//                                    }""".formatted(starIndex, psiMethod.getName(), userFeedback))
+//                            .retrieve()
+//                            .bodyToMono(Void.class)
+//                                    .subscribe(unsend -> {},
+//                                            error -> {},
+//                                            () -> System.out.println("Post completed successfully"));
+//
+//                    ratedMethods.add(methodId);
+//                    if (balloonRef[0] != null) {
+//                        balloonRef[0].hide(); // Dismiss the balloon
+//                        balloonRef[0].isDisposed();
+//                        activeBalloons.remove(methodId);
+//                    }
+//                }
+
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     updateStars(stars, starIndex);
 
-                    String userFeedback = Messages.showInputDialog(
-                            "Add optional feedback (or leave blank):",
-                            "Submit Rating",
-                            Messages.getQuestionIcon()
-                    );
+                    panel.removeAll();
+                    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+                    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                    WebClient.create("http://localhost:8000")
-                            .post()
-                            .uri("/send-feedback")
-                            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                            .bodyValue("""
-                                    {
-                                        "rate": "%s",
-                                        "method_size": "%s",
-                                        "comment": "%s"
-                                    }""".formatted(starIndex, psiMethod.getName(), userFeedback))
-                            .retrieve()
-                            .bodyToMono(Void.class)
-                                    .subscribe(unsend -> {},
-                                            error -> {},
-                                            () -> System.out.println("Post completed successfully"));
+                    JLabel commentLabel = new JLabel("Optional comment (or leave blank):");
+                    commentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-                    System.out.println("User rated: " + starIndex + " stars, for method: " + psiMethod.getName());
-                    ratedMethods.add(methodId);
+                    JTextArea commentArea = new JTextArea(4, 30);
+                    commentArea.setLineWrap(true);
+                    commentArea.setWrapStyleWord(true);
+
+                    JScrollPane scrollPane = new JScrollPane(commentArea);
+                    scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    scrollPane.setPreferredSize(new Dimension(400, 80));
+
+                    JButton submitButton = new JButton("Submit");
+                    submitButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    submitButton.addActionListener(ev -> {
+                        String userFeedback = commentArea.getText().trim();
+
+                        WebClient.create("http://localhost:8000")
+                                .post()
+                                .uri("/send-feedback")
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .bodyValue("""
+                                            {
+                                                "rate": "%s",
+                                                "method_size": "%s",
+                                                "comment": "%s"
+                                            }""".formatted(starIndex, psiMethod.getName(), escapeJson(userFeedback)))
+                                .retrieve()
+                                .bodyToMono(Void.class)
+                                .subscribe(
+                                        unsend -> {},
+                                        error -> {},
+                                        () -> System.out.println("Post completed successfully"));
+
+                        System.out.printf("User rated: %d stars, method: %s%n", starIndex, psiMethod.getName());
+                        ratedMethods.add(methodId);
+                        if (balloonRef[0] != null) {
+                            balloonRef[0].hide();
+                            activeBalloons.remove(methodId);
+                        }
+                    });
+
+                    panel.add(commentLabel);
+                    panel.add(Box.createVerticalStrut(5));
+                    panel.add(scrollPane);
+                    panel.add(Box.createVerticalStrut(10));
+                    panel.add(submitButton);
+
+                    panel.revalidate();
+                    panel.repaint();
+
+                    // Optional: force balloon re-pack if using IntelliJ’s Balloon API
                     if (balloonRef[0] != null) {
-                        balloonRef[0].hide(); // Dismiss the balloon
-                        balloonRef[0].isDisposed();
-                        activeBalloons.remove(methodId);
-                        System.out.println("Exit balloon");
+                        balloonRef[0].revalidate(); // or hide+show if not auto-updating size
                     }
                 }
+
             });
 
             stars[i] = star;
@@ -164,30 +226,22 @@ public class StarRatingFeedback {
         VisibleAreaListener[] listenerRef = new VisibleAreaListener[1];
 
         listenerRef[0] = e -> {
-            if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
-                balloonRef[0].hide();
-                balloonRef[0].dispose();
-                activeBalloons.remove(methodId);
-                editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
+            Rectangle oldArea = e.getOldRectangle();
+            Rectangle newArea = e.getNewRectangle();
+
+            // Only act if vertical scroll (Y position changed)
+            if (oldArea.y != newArea.y) {
+                if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
+                    balloonRef[0].hide();
+                    balloonRef[0].dispose();
+                    activeBalloons.remove(methodId);
+                    editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
+                }
             }
         };
 
         editor.getScrollingModel().addVisibleAreaListener(listenerRef[0]);
 
-
-//        VisibleAreaListener[] listenerRef = new VisibleAreaListener[1];
-//
-//        listenerRef[0] = e -> {
-//            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
-//                debounceTimer.stop();
-//                return;
-//            }
-//            debounceTimer.stop();
-//            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
-//            debounceTimer.start();
-//        };
-
-        editor.getScrollingModel().addVisibleAreaListener(listenerRef[0]);
 
         closeButton.addActionListener(e -> {
             ratedMethods.add(methodId);
@@ -200,16 +254,6 @@ public class StarRatingFeedback {
 
             editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
         });
-//        editor.getScrollingModel().addVisibleAreaListener(e -> {
-//            if (balloonRef[0] == null || balloonRef[0].isDisposed()) {
-//                System.out.println("It stoppped");
-//                debounceTimer.stop();
-//                return;
-//            }
-//            debounceTimer.stop();
-//            debounceTimer.addActionListener(ev -> showBalloonAtOffset.run());
-//            debounceTimer.start();
-//        });
     }
 
     private static void updateStars(JLabel[] stars, int count) {
@@ -226,9 +270,8 @@ public class StarRatingFeedback {
         ApplicationManager.getApplication().invokeAndWait(() -> {
             for (Balloon balloon : activeBalloons.values()) {
                 if (balloon != null) {
-                    balloon.hide(true); // Force hide
+                    balloon.hide(true);
                     balloon.dispose();
-                    System.out.println("Hided balloon X");
                 }
             }
             activeBalloons.clear();
@@ -240,8 +283,15 @@ public class StarRatingFeedback {
     public static void discardIsRated(String s) {
         ratedMethods.remove(s);
     }
-}
 
+    private static String escapeJson(String text) {
+        return text
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "");
+    }
+}
 
 
 

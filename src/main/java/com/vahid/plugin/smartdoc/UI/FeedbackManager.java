@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiPredicate;
 
 public class FeedbackManager {
 
@@ -27,6 +28,8 @@ public class FeedbackManager {
     }
     private static final ConcurrentHashMap<VirtualFile, List<PsiMethod>> pendingFeedback = new ConcurrentHashMap<>();
     private static final Set<Project> initializedProjects = ConcurrentHashMap.newKeySet();
+    private static final BiPredicate<PsiMethod, PsiMethod> checkIfMethodsAreEquals = (psiMethod, psiMethod2) -> psiMethod.getContainingFile().getVirtualFile().getPath().equals(psiMethod2.getContainingFile().getVirtualFile().getPath())
+            && psiMethod.getName().equals(psiMethod2.getName());
 
     public static void queueFeedback(Project project, PsiMethod psiMethod) {
         VirtualFile file = psiMethod.getContainingFile().getVirtualFile();
@@ -37,9 +40,10 @@ public class FeedbackManager {
 
         StarRatingFeedback.discardIsRated(psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName());
 
-        // File may not be visible → queue feedback
         pendingFeedback.compute(file, (vf, list) -> {
             if (list == null) list = new ArrayList<>();
+            list.removeIf(existingMethod -> checkIfMethodsAreEquals.test(existingMethod, psiMethod));
+            System.out.println("PsiMeethod size is" + list.size());
             list.add(psiMethod);
             return list;
         });
@@ -65,30 +69,6 @@ public class FeedbackManager {
                         }
                     });
 
-//            EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
-//                @Override
-//                public void editorCreated(@NotNull EditorFactoryEvent event) {
-//                    System.out.println("Edidor is active");
-//                    Editor editor = event.getEditor();
-//                    VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
-//                    Project editorProject = editor.getProject();
-//
-//                    if (file != null && editorProject != null && editorProject.equals(project)) {
-//                        editor.getScrollingModel().addVisibleAreaListener(new VisibleAreaListener() {
-//                            private boolean handled = false;
-//
-//                            @Override
-//                            public void visibleAreaChanged(@NotNull VisibleAreaEvent e) {
-//                                if (!handled) {
-//                                    handled = true;
-//                                    handleEvent(editorProject, file); // your re-open logic
-//                                }
-//                            }
-//                        }, project);
-//                    }
-//                }
-//            }, project);
-
             System.out.println("Done with all regs");
         }
 
@@ -108,13 +88,6 @@ public class FeedbackManager {
         System.out.println("Entered!" + selected.getName());
         if (pendingFeedback.containsKey(selected)) {
             System.out.println("Handleing..." + selected.getName());
-            // In case a method can be repeated in terms of rating. Replace other similar blocks as well.
-//                                List<PsiMethod> psiMethods = pendingFeedback.remove(selected);
-//                                if (psiMethods != null) {
-//                                    for (PsiMethod psiMethod : psiMethods) {
-//                                        showFeedbackList(project, psiMethods);
-//                                    }
-//                                }
             List<PsiMethod> psiMethods = pendingFeedback.get(selected);
             System.out.println("values are" + pendingFeedback.get(selected).size());
             if (psiMethods != null) {

@@ -46,15 +46,17 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
     }
     @Override
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
-        if (Strings.isNullOrEmpty(this.apiKey)
-                || Strings.isNullOrEmpty(ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey)) {
-            ApplicationManager.getApplication().invokeAndWait(() -> {
-                DynamicDialog dialog = new DynamicDialog("Empty API Key ERROR", "Before proceeding, please introduce API key from Setting menu.");
-                dialog.showAndGet();
-            });
+        if (Strings.isNullOrEmpty(this.apiKey)) {
+            if (Strings.isNullOrEmpty(ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey)) {
+                ApplicationManager.getApplication().invokeAndWait(() -> {
+                    DynamicDialog dialog = new DynamicDialog("Empty API Key ERROR", "Before proceeding, please introduce API key from Setting menu.");
+                    dialog.showAndGet();
+                });
 
-            throw new ProcessCanceledException();
+                throw new ProcessCanceledException();
+            }
         }
+
         final String prompt = createPrompt(superMethod, psiMethodCallExpressions);
         ObjectMapper objectMapper = new ObjectMapper();
         String formattedPrompt;
