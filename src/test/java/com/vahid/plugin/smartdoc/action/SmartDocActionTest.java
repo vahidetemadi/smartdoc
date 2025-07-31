@@ -33,7 +33,8 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         super.setUp();
         MethodService realMethodService = new MethodService();
         methodService = Mockito.spy(realMethodService);
-        remoteGAService = new RemoteGAServiceOkHttp(API_KEY);
+        RemoteGAService remoteGAServiceReal = new RemoteGAServiceOkHttp();
+        remoteGAService = Mockito.spy(remoteGAServiceReal);
         UpdateAction realUpdateAction = new DeepSeekUpdateAction(remoteGAService, methodService);
         updateAction = Mockito.spy(realUpdateAction);
     }
@@ -90,6 +91,9 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
             doReturn(psiMethod)
                     .when(updateAction)
                     .getMethod(editor, psiFile);
+            doReturn(API_KEY)
+                    .when((RemoteGAServiceOkHttp) remoteGAService)
+                    .getApiKey();
             try (MockedStatic<FeedbackManager> mockedStatic = Mockito.mockStatic(FeedbackManager.class)) {
                 mockedStatic.when(() -> FeedbackManager.queueFeedback(any(), any())).thenAnswer(invocationOnMock -> null);
                 updateAction.actionPerformed(e);

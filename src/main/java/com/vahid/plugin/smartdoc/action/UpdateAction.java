@@ -15,9 +15,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.vahid.plugin.smartdoc.UI.FeedbackManager;
+import com.vahid.plugin.smartdoc.dto.FeedbackCommentDto;
 import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
 import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
+import com.vahid.plugin.smartdoc.value.RemoteLLM;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,7 +137,8 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             @Override
             public void onSuccess() {
                 if (rootMethod == null) return;
-                FeedbackManager.queueFeedback(project, rootMethod);
+                FeedbackManager.queueFeedback(project, new FeedbackCommentDto(RemoteLLM.getLLM(UpdateAction.this),
+                         rootMethod));
             }
         }.queue();
     }

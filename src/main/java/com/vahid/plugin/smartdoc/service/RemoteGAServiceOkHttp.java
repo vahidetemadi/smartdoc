@@ -24,37 +24,26 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service(Service.Level.APP)
 public final class RemoteGAServiceOkHttp extends RemoteGAService{
     private static final Logger logger = LoggerFactory.getLogger(RemoteGAServiceOkHttp.class);
-    private String apiKey;
     private static final String API_URL = "https://api.deepseek.com/chat/completions";
 
 
     public RemoteGAServiceOkHttp() {
         super();
-        this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey;
     }
 
-    public RemoteGAServiceOkHttp(String apiKey) {
-        super();
-        this.apiKey = apiKey;
-    }
-
-    private String getApiKey() {
-        if (Strings.isNullOrEmpty(this.apiKey)) {
-            this.apiKey = ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey;
-        }
-        return this.apiKey;
+    public String getApiKey() {
+        return ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey;
     }
     @Override
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
-        if (Strings.isNullOrEmpty(this.apiKey)) {
-            if (Strings.isNullOrEmpty(ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey)) {
-                ApplicationManager.getApplication().invokeAndWait(() -> {
-                    DynamicDialog dialog = new DynamicDialog("Empty API Key ERROR", "Before proceeding, please introduce API key from Setting menu.");
-                    dialog.showAndGet();
-                });
 
-                throw new ProcessCanceledException();
-            }
+        if (Strings.isNullOrEmpty(ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey)) {
+            ApplicationManager.getApplication().invokeAndWait(() -> {
+                DynamicDialog dialog = new DynamicDialog("Empty API Key ERROR", "Before proceeding, please introduce API key from File -> Settings -> SmartDoc App Settings menu, and try again!");
+                dialog.showAndGet();
+            });
+
+            throw new ProcessCanceledException();
         }
 
         final String prompt = createPrompt(superMethod, psiMethodCallExpressions);
@@ -98,14 +87,14 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
 
             assert response.body() != null;
             String responseBodyStr = response.body().string();
-            System.out.println("Raw response: " + responseBodyStr);
+            //System.out.println("Raw response: " + responseBodyStr);
+            logger.info("Here is raw res from deepseek: {}", responseBodyStr);
 
             return parseResponse(responseBodyStr);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Error occurred when making call to remote DeepSeek: {}", e.getMessage());
+            throw new ProcessCanceledException();
         }
-
-        return "";
     }
 
     private String parseResponse(String jsonRes) {

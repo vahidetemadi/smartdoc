@@ -12,6 +12,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
+import com.vahid.plugin.smartdoc.dto.FeedbackCommentDto;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -33,7 +34,8 @@ public class StarRatingFeedback {
 
     private static final Set<String> ratedMethods = ConcurrentHashMap.newKeySet();
 
-    public static void show(Editor editor, PsiMethod psiMethod) {
+    public static void show(Editor editor, FeedbackCommentDto dto) {
+        PsiMethod psiMethod = dto.psiMethod();
         String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
         if (ratedMethods.contains(methodId)) {
             return;
@@ -127,8 +129,9 @@ public class StarRatingFeedback {
                                             {
                                                 "rate": "%s",
                                                 "method_size": "%s",
-                                                "comment": "%s"
-                                            }""".formatted(starIndex, psiMethod.getName(), escapeJson(userFeedback)))
+                                                "comment": "%s",
+                                                "LLM type: "%s""
+                                            }""".formatted(starIndex, psiMethod.getName(), escapeJson(userFeedback), dto.remoteLLM()))
                                 .retrieve()
                                 .bodyToMono(Void.class)
                                 .subscribe(
@@ -136,7 +139,8 @@ public class StarRatingFeedback {
                                         error -> {},
                                         () -> System.out.println("Post completed successfully"));
 
-                        System.out.printf("User rated: %d stars, method: %s%n", starIndex, psiMethod.getName());
+                        System.out.printf("User rated: %d stars, method: %s %n, llm: %s", starIndex, psiMethod.getName(),
+                                dto.remoteLLM());
                         ratedMethods.add(methodId);
                         if (balloonRef[0] != null) {
                             balloonRef[0].hide();
