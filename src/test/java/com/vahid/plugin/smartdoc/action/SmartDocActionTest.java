@@ -17,12 +17,21 @@ import org.mockito.Captor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
 
 public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
+
+    Map<PsiMethod, CommentPairHolderDto> map = new HashMap<>();
+
     MethodService methodService;
     RemoteGAService remoteGAService;
     UpdateAction updateAction;
@@ -41,6 +50,8 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
 
     @Captor
     ArgumentCaptor<String> commentCaptor = ArgumentCaptor.forClass(String.class);
+
+
     public void test_givenAMethodWithBodyAndNestedCalls_thenReturnEventualGeneratedComment() {
 
         @Language("JAVA") String code = """
@@ -72,6 +83,7 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         PsiClass psiClass = myFixture.addClass(code);
         PsiFile psiFile = psiClass.getContainingFile();
 
+        // Deleting method comments to make it fully dependent to SmartDoc
         WriteCommandAction.runWriteCommandAction(myFixture.getProject(), () -> {
             for (PsiMethod method : psiClass.getMethods()) {
                 PsiComment docComment = method.getDocComment();
@@ -85,7 +97,8 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         when(e.getData(CommonDataKeys.EDITOR)).thenReturn(editor);
         when(e.getData(CommonDataKeys.PSI_FILE)).thenReturn(psiFile);
 
-        Map<PsiMethod, String> map = new HashMap<>();
+        Map<PsiMethod, String> psiMethodMap = new HashMap<>();
+
         for (PsiMethod psiMethod : psiClass.getMethods()) {
             doNothing().when(methodService).replaceMethodComment(any(), any(), any());
             doReturn(psiMethod)
@@ -99,10 +112,73 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
                 updateAction.actionPerformed(e);
                 doNothing().when(methodService).replaceMethodComment(any(PsiMethod.class), commentCaptor.capture(), any(Project.class));
                 verify(methodService).replaceMethodComment(eq(psiMethod), commentCaptor.capture(), eq(project));
-                map.put(psiMethod, commentCaptor.getValue());
+                psiMethodMap.put(psiMethod, commentCaptor.getValue());
             }
         }
 
-        map.forEach((psiMethod, s) -> System.out.println(psiMethod.getName() + ":::" + s));
+        psiMethodMap.forEach((psiMethod, s) -> System.out.println(psiMethod.getName() + ":::" + s));
+    }
+
+    public void test_givenMultipleClassesProject_whenRequestForCommentGen_produceAndRecordCommentPairs() throws IOException{
+        Path testResourcePath = Paths.get("src/test/resources/testClasses");
+
+        Files.walk(testResourcePath)
+                .filter(path -> path.toString().endsWith(".java"))
+                .forEach(path -> {
+                    try {
+                        String relPath = testResourcePath.relativize(path).toString();
+                        String fileText = Files.readString(path);
+
+                        myFixture.addFileToProject(relPath.replace(File.separatorChar, '/'), fileText);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+
+        Collection<PsiClass> psiClasses = Arrays.stream(Objects.requireNonNull(myFixture.getJavaFacade().findPackage(""))
+                .getClasses())
+                .toList();
+
+        AnActionEvent e = Mockito.mock(AnActionEvent.class);
+        Project project = Mockito.mock(Project.class);
+        Editor editor = Mockito.mock(Editor.class);
+
+        when(e.getProject()).thenReturn(project);
+        when(e.getData(CommonDataKeys.EDITOR)).thenReturn(editor);
+
+        for (PsiClass psiClass : psiClasses) {
+            PsiFile psiFile = psiClass.getContainingFile();
+            when(e.getData(CommonDataKeys.PSI_FILE)).thenReturn(psiFile);
+
+            WriteCommandAction.runWriteCommandAction(myFixture.getProject(), () -> {
+                for (PsiMethod psiMethod : psiClass.getMethods()) {
+                    PsiComment psiComment = psiMethod.getDocComment();
+                    String methodComment = Optional.ofNullable(psiComment.getText()).orElse(null);
+                    map.computeIfAbsent(psiMethod, m -> CommentPairHolderDto.Builder().expected(methodComment).build());
+                    psiComment.delete();
+                }
+            });
+
+            for (PsiMethod psiMethod : psiClass.getMethods()) {
+                doNothing().when(methodService).replaceMethodComment(any(), any(), any());
+                doReturn(psiMethod).when(updateAction).getMethod(editor, psiFile);
+                doReturn(API_KEY).when((RemoteGAServiceOkHttp) remoteGAService).getApiKey();
+
+                try (MockedStatic<FeedbackManager> mockedStatic = Mockito.mockStatic(FeedbackManager.class)) {
+                    mockedStatic.when(() -> FeedbackManager.queueFeedback(any(), any())).thenReturn(null);
+                    updateAction.actionPerformed(e);
+                    verify(methodService).replaceMethodComment(eq(psiMethod), commentCaptor.capture(), eq(project));
+                    map.computeIfPresent(psiMethod, (m, commentPairHolderDto) -> commentPairHolderDto.setActual(commentCaptor.getValue()));
+                }
+            }
+
+        }
+    }
+
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        // TODO update
     }
 }

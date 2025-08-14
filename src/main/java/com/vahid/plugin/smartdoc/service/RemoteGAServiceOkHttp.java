@@ -37,7 +37,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
     @Override
     public String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
 
-        if (Strings.isNullOrEmpty(ApplicationManager.getApplication().getService(SmartDocState.class).DeepSeekAPIKey)) {
+        if (Strings.isNullOrEmpty(getApiKey())) {
             ApplicationManager.getApplication().invokeAndWait(() -> {
                 DynamicDialog dialog = new DynamicDialog("Empty API Key ERROR", "Before proceeding, please introduce API key from File -> Settings -> SmartDoc App Settings menu, and try again!");
                 dialog.showAndGet();

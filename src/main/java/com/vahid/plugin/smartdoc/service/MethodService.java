@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service(Service.Level.APP)
 public final class MethodService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MethodService.class);
     private static final Map<String, String> methodComments = new ConcurrentHashMap<>();
     private static final Pattern JAVADOC_METHOD_PATTERN = Pattern.compile(
             "/\\*\\*\\s*" +                                      // /** start
@@ -29,7 +31,6 @@ public final class MethodService {
                     "(?:\\*\\s*@return\\s+.*\\s*)?" +                    // optional @return
                     "(?:\\*\\s*@(throws|exception)\\s+\\w+\\s+.*\\s*)*" + // optional @throws or @exception
                     "\\*/", Pattern.DOTALL);
-    private static final Logger log = LoggerFactory.getLogger(MethodService.class);
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();

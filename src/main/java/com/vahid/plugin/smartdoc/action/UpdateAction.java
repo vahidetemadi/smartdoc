@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class UpdateAction extends AnAction implements DumbAware {
     Logger logger = LoggerFactory.getLogger(UpdateAction.class);
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
+    ThreadLocal<Set<PsiMethod>> setThreadLocal = ThreadLocal.withInitial(HashSet::new);
     private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
     private static final Integer MAX_RETRY_COUNT = 3;
     private final MethodService methodService;
@@ -89,6 +90,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 Stack<PsiMethod> methodStack = stackThreadLocal.get();
+                Set<PsiMethod> methodSet = setThreadLocal.get();
                 try {
                     rootMethod = getMethod(editor, psiFile);
 
@@ -96,7 +98,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                     methodStack.add(rootMethod);
 
                     // Starting from the current method to iterate in a DFS manner
-                    iterateOverMethods(rootMethod, methodStack);
+                    iterateOverMethods(rootMethod, methodStack, methodSet);
 
                     // Iterate over the thread scoped stack collection and apply method update in case the method does not have a comment yet!
                     while (!methodStack.isEmpty()) {
@@ -127,6 +129,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                 }
                 finally {
                     stackThreadLocal.remove();
+                    setThreadLocal.remove();
                 }
             }
             @Override
@@ -164,7 +167,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
         });
     }
 
-    private void iterateOverMethods(PsiMethod method, Stack<PsiMethod> methodStack) {
+    private void iterateOverMethods(PsiMethod method, Stack<PsiMethod> methodStack, Set<PsiMethod> visited) {
         List<PsiMethodCallExpression> expressions = methodService.findMethodCalls(method);
         if (expressions.isEmpty()) {
             return;
@@ -174,7 +177,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             ReadAction.run(() -> psiMethodRef.set(expression.resolveMethod()));
             PsiMethod psiMethod = psiMethodRef.get();
             methodStack.add(psiMethod);
-            iterateOverMethods(psiMethod, methodStack);
+            iterateOverMethods(psiMethod, methodStack, visited);
         }
     }
 }
