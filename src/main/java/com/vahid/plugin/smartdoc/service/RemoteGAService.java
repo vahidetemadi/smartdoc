@@ -20,16 +20,25 @@ public abstract class RemoteGAService {
     public abstract String getMethodComment(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions);
 
     /**
-     * Engineers the prompt in order for remote call
+     * Engineers the prompt in order for making remote call
      * @param superMethod root method to request method summary
      * @param psiMethodCallExpressions all superMethod's children methods that already have their summary
      * @return engineered prompt
      */
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
         return ReadAction.compute(() -> {
-            String template = """
-                    Produce maximum of three lines JavaDoc style method comment for method: {0},
-                    given explanations for nested method calls as follow: {1}""";
+            String rootTemplate = """
+                    Produce maximum of three lines JavaDoc style method comment (including all relevant marks such as param, return or throws if required based on the context) for method: {0}""";
+
+            Optional<String> superMethodTextOptional = Optional.ofNullable(superMethod.getText());
+            String superMethodText = superMethodTextOptional.orElse(methodService.getMethodFullQualifiedName(superMethod));
+
+            if (psiMethodCallExpressions.isEmpty()) {
+                return MessageFormat.format(rootTemplate, superMethodText);
+            }
+
+            String followingTemplate = """
+                    ,given explanations for nested method calls as follow: {1}""";
             List<String> nestedMethodCallComment = psiMethodCallExpressions.stream()
                     .filter(Objects::nonNull)
                     .map(methodCallExpression -> String.join(" with method comment:",
@@ -37,10 +46,10 @@ public abstract class RemoteGAService {
                                     methodService.getMethodComment(methodCallExpression.resolveMethod()))))
                     .toList();
 
-            String joinedMethodCalls = String.join(" , and", nestedMethodCallComment);
-            Optional<String> superMethodTextOptional = Optional.ofNullable(superMethod.getText());
-            return MessageFormat.format(template,
-                    superMethodTextOptional.orElse(methodService.getMethodFullQualifiedName(superMethod)),
+            String joinedMethodCalls = String.join(" , and ", nestedMethodCallComment);
+
+            return MessageFormat.format(rootTemplate + followingTemplate,
+                    superMethodText,
                     joinedMethodCalls);
         });
     }

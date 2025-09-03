@@ -6,6 +6,8 @@ import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import com.vahid.plugin.smartdoc.UI.FeedbackManager;
 import com.vahid.plugin.smartdoc.service.MethodService;
@@ -25,17 +27,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.mockito.Mockito.*;
 
 public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
+
+    public static String projectName;
+    public static String modelName = "DEEPSEEK_REMOTE";
 
     Map<PsiMethod, CommentPairHolderDto> map = new HashMap<>();
 
     MethodService methodService;
     RemoteGAService remoteGAService;
     UpdateAction updateAction;
-    private static final String API_KEY = "sk-b1565f080a1748bdb5b1453235a12019";
+    private static final String API_KEY = "sk-3016984cfddf432f8459d7d4cb45cdb1";
 
     @Override
     protected void setUp() throws Exception {
@@ -56,6 +62,7 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
 
         @Language("JAVA") String code = """
                 public class Sample {
+                    
                     public void methodA() {
                         System.out.println("MethodA");
                         methodB();
@@ -120,23 +127,30 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
     }
 
     public void test_givenMultipleClassesProject_whenRequestForCommentGen_produceAndRecordCommentPairs() throws IOException{
-        Path testResourcePath = Paths.get("src/test/resources/testClasses");
+        map.clear();
+        Path testResourcePath = Paths.get("src/test/resources/testClasses/things");
+        projectName = testResourcePath.getName(testResourcePath.getNameCount() - 1).toString();
 
-        Files.walk(testResourcePath)
-                .filter(path -> path.toString().endsWith(".java"))
-                .forEach(path -> {
-                    try {
-                        String relPath = testResourcePath.relativize(path).toString();
-                        String fileText = Files.readString(path);
+        try (Stream<Path> paths = Files.walk(testResourcePath, Integer.MAX_VALUE)) {
+            paths.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .forEach(path -> {
+                        try {
+                            String relPath = testResourcePath.relativize(path).toString();
+                            String fileText = Files.readString(path);
 
-                        myFixture.addFileToProject(relPath.replace(File.separatorChar, '/'), fileText);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
+                            myFixture.addFileToProject(relPath.replace(File.separatorChar, '/'), fileText);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+        }
 
-        Collection<PsiClass> psiClasses = Arrays.stream(Objects.requireNonNull(myFixture.getJavaFacade().findPackage(""))
-                .getClasses())
+        GlobalSearchScope scope = GlobalSearchScope.allScope(myFixture.getProject());
+        PsiShortNamesCache cache = PsiShortNamesCache.getInstance(myFixture.getProject());
+
+        List<PsiClass> allClasses = Arrays.stream(cache.getAllClassNames())
+                .flatMap(className -> Arrays.stream(cache.getClassesByName(className, scope)))
                 .toList();
 
         AnActionEvent e = Mockito.mock(AnActionEvent.class);
@@ -146,39 +160,46 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         when(e.getProject()).thenReturn(project);
         when(e.getData(CommonDataKeys.EDITOR)).thenReturn(editor);
 
-        for (PsiClass psiClass : psiClasses) {
+        int i = 0;
+        for (PsiClass psiClass : allClasses) {
+            if (i > 15)
+                break;
             PsiFile psiFile = psiClass.getContainingFile();
             when(e.getData(CommonDataKeys.PSI_FILE)).thenReturn(psiFile);
 
             WriteCommandAction.runWriteCommandAction(myFixture.getProject(), () -> {
                 for (PsiMethod psiMethod : psiClass.getMethods()) {
                     PsiComment psiComment = psiMethod.getDocComment();
-                    String methodComment = Optional.ofNullable(psiComment.getText()).orElse(null);
-                    map.computeIfAbsent(psiMethod, m -> CommentPairHolderDto.Builder().expected(methodComment).build());
-                    psiComment.delete();
+                    String methodComment = Optional.ofNullable(psiComment).map(PsiComment::getText).orElse(null);
+                    if (psiComment != null)  {
+                        map.computeIfAbsent(psiMethod, m -> CommentPairHolderDto.Builder().expected(methodComment).build());
+                        psiComment.delete();
+                    }
                 }
             });
 
             for (PsiMethod psiMethod : psiClass.getMethods()) {
+                if (!map.containsKey(psiMethod))
+                    continue;
                 doNothing().when(methodService).replaceMethodComment(any(), any(), any());
                 doReturn(psiMethod).when(updateAction).getMethod(editor, psiFile);
                 doReturn(API_KEY).when((RemoteGAServiceOkHttp) remoteGAService).getApiKey();
 
                 try (MockedStatic<FeedbackManager> mockedStatic = Mockito.mockStatic(FeedbackManager.class)) {
-                    mockedStatic.when(() -> FeedbackManager.queueFeedback(any(), any())).thenReturn(null);
+                    mockedStatic.when(() -> FeedbackManager.queueFeedback(any(), any())).thenAnswer(invocation -> null);
                     updateAction.actionPerformed(e);
                     verify(methodService).replaceMethodComment(eq(psiMethod), commentCaptor.capture(), eq(project));
                     map.computeIfPresent(psiMethod, (m, commentPairHolderDto) -> commentPairHolderDto.setActual(commentCaptor.getValue()));
                 }
             }
-
+            i++;
         }
     }
 
 
     @Override
     protected void tearDown() throws Exception {
+        IOUtils.persistChanges(map, projectName);
         super.tearDown();
-        // TODO update
     }
 }

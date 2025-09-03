@@ -13,6 +13,7 @@ public class CommentPairHolderDto {
     public static Builder Builder() {
         return new Builder();
     }
+
     public static class Builder {
         private String actual;
         private String expected;

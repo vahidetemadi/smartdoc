@@ -61,11 +61,33 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                 .retryOnConnectionFailure(true)
                 .build();
 
+//        String json = String.format("""
+//                {
+//                    "model": "deepseek-coder",
+//                    "messages": [
+//                        {"role": "system", "content": "Be very concise and only return method comment, in JavaDoc style (include what nested methods do all as single explain, but do not name them  or do not say method to) and not the method itself and without java tag and only comment"},
+//                        {"role": "user", "content": %s}
+//                    ],
+//                    "stream": false
+//                }
+//                """, formattedPrompt);
+
+//        String json = String.format("""
+//                {
+//                    "model": "deepseek-chat",
+//                    "messages": [
+//                        {"role": "system", "You are an expert Java programmer. Generate maximum of three lines of JavaDoc style comment with proper asterisks and slashes. Include the opening /** and closing */, and exactly one line of description in between"},
+//                        {"role": "user", "content": %s}
+//                    ],
+//                    "stream": false
+//                }
+//                """, formattedPrompt);
+
         String json = String.format("""
                 {
-                    "model": "deepseek-chat",
+                    "model": "deepseek-coder",
                     "messages": [
-                        {"role": "system", "content": "Be very concise and only return method comment, in JavaDoc style (include what nested methods do all as single explain, but do not name them  or do not say method to) and not the method itself and without java tag and only comment"},
+                        {"role": "system", "content": "Be very concise and only return method comment in JavaDoc style including the opening and closing comment tag, given following explanation of nested method, if exist"},
                         {"role": "user", "content": %s}
                     ],
                     "stream": false

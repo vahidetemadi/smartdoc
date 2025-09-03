@@ -35,14 +35,14 @@ repositories {
   }
 }
 
-dependencies {
-  intellijPlatform {
-    intellijIdeaCommunity("2025.1")
-    bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
-    create("IC", "2025.1")
-    testFramework(TestFrameworkType.Platform)
-    testFramework(TestFrameworkType.Plugin.Java)
-  }
+  dependencies {
+    intellijPlatform {
+      intellijIdeaCommunity("2025.1")
+      bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
+      create("IC", "2025.1")
+      testFramework(TestFrameworkType.Platform)
+      testFramework(TestFrameworkType.Plugin.Java)
+    }
     implementation(kotlin("stdlib"))
     implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
     implementation("com.theokanning.openai-gpt3-java:client:0.18.2")

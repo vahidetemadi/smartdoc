@@ -42,7 +42,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
             synchronized (this) {
                 model = OllamaChatModel.builder()
                         .baseUrl(API_URL)
-                        .modelName("deepseek-r1:1.5b")
+                        .modelName("codellama:latest")
                         .temperature(0.0)
                         .timeout(Duration.ofSeconds(120))
                         .logRequests(true)
