@@ -2,11 +2,10 @@ package com.vahid.plugin.smartdoc.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.vahid.plugin.smartdoc.config.SmartDocState;
 import com.vahid.plugin.smartdoc.dto.ReturnCommentDto;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ResponseFormat;
@@ -36,17 +35,18 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
         super();
     }
 
-
     private ChatLanguageModel getOrCreateModel() {
         if (model == null) {
             synchronized (this) {
-                model = OllamaChatModel.builder()
-                        .baseUrl(API_URL)
-                        .modelName("codellama:latest")
-                        .temperature(0.0)
-                        .timeout(Duration.ofSeconds(120))
-                        .logRequests(true)
-                        .build();
+                if (model == null) {
+                    model = OllamaChatModel.builder()
+                            .baseUrl(API_URL)
+                            .modelName("phi:latest")
+                            .temperature(0.0)
+                            .timeout(Duration.ofSeconds(120))
+                            .logRequests(true)
+                            .build();
+                }
             }
         }
         return model;
@@ -67,7 +67,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
 
         UserMessage userMessage = UserMessage.from(prompt);
         SystemMessage systemMessage = new SystemMessage("""
-            You are a Java code assistant. When given a method and its context, generate only and only a concise method comment.
+            You are a Java code assistant. When given a method and its context, generate only and only Java-doc style method comment.
         """);
 
 
@@ -85,7 +85,8 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
             ReturnCommentDto dto = new ObjectMapper().readValue(chatResponse.aiMessage().text(), ReturnCommentDto.class);
             return dto.javaDocStyleComment();
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Something went wrong ");
+            logger.error("Parsing error: ", e);
+            throw new ProcessCanceledException(e);
         }
     }
 }

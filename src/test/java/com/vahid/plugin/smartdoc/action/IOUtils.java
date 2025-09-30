@@ -12,8 +12,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class IOUtils {
-    public static void persistChanges(Map<PsiMethod, CommentPairHolderDto> theMap, String projectName) {
-        Path testResultPath = Paths.get(STR."src/test/resources/testResults/\{projectName}.txt");
+    public static void persistChanges(String modelName, Map<PsiMethod, CommentPairHolderDto> theMap, String projectName) {
+        Path testResultPath = Paths.get(STR."src/test/resources/testResults/\{modelName}/\{projectName}.txt");
         try {
             Files.createDirectories(testResultPath.getParent());
             if (Files.notExists(testResultPath)) {

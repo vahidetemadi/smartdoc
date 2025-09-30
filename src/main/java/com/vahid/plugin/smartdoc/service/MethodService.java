@@ -188,7 +188,7 @@ public final class MethodService {
     public String getMethodFullQualifiedName(@NotNull PsiMethod psiMethod) {
         PsiClass containingClass = psiMethod.getContainingClass();
         if (containingClass == null || containingClass.getQualifiedName() == null) {
-            return null; // Cannot determine
+            return null; // not determined!
         }
 
         String classFqn = containingClass.getQualifiedName();

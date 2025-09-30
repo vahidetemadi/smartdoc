@@ -52,7 +52,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
         try {
             formattedPrompt = objectMapper.writeValueAsString(prompt);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new ProcessCanceledException(e);
         }
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(120, TimeUnit.SECONDS)
@@ -109,7 +109,6 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
 
             assert response.body() != null;
             String responseBodyStr = response.body().string();
-            //System.out.println("Raw response: " + responseBodyStr);
             logger.info("Here is raw res from deepseek: {}", responseBodyStr);
 
             return parseResponse(responseBodyStr);
@@ -127,10 +126,8 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
             String assistantReply = rootNode.path("choices").get(0).path("message").path("content").asText();
             System.out.println(String.format("Here is the response: %s", assistantReply));
             return assistantReply;
-        } catch (JsonMappingException e) {
-            throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new ProcessCanceledException(e);
         }
     }
 }

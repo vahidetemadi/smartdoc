@@ -34,14 +34,14 @@ import static org.mockito.Mockito.*;
 public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
 
     public static String projectName;
-    public static String modelName = "DEEPSEEK_REMOTE";
+    public static String modelName = "DEEPSEEK_REMOTE_CODER";
 
     Map<PsiMethod, CommentPairHolderDto> map = new HashMap<>();
 
     MethodService methodService;
     RemoteGAService remoteGAService;
     UpdateAction updateAction;
-    private static final String API_KEY = "sk-3016984cfddf432f8459d7d4cb45cdb1";
+    private static final String API_KEY = System.getenv("DEEPSEEK_KEY");
 
     @Override
     protected void setUp() throws Exception {
@@ -128,7 +128,7 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
 
     public void test_givenMultipleClassesProject_whenRequestForCommentGen_produceAndRecordCommentPairs() throws IOException{
         map.clear();
-        Path testResourcePath = Paths.get("src/test/resources/testClasses/things");
+        Path testResourcePath = Paths.get("src/test/resources/testClasses/thingsearch");
         projectName = testResourcePath.getName(testResourcePath.getNameCount() - 1).toString();
 
         try (Stream<Path> paths = Files.walk(testResourcePath, Integer.MAX_VALUE)) {
@@ -161,8 +161,9 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         when(e.getData(CommonDataKeys.EDITOR)).thenReturn(editor);
 
         int i = 0;
+        int end = 10;
         for (PsiClass psiClass : allClasses) {
-            if (i > 15)
+            if (i > end)
                 break;
             PsiFile psiFile = psiClass.getContainingFile();
             when(e.getData(CommonDataKeys.PSI_FILE)).thenReturn(psiFile);
@@ -179,8 +180,12 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
             });
 
             for (PsiMethod psiMethod : psiClass.getMethods()) {
+                if (i > end)
+                    break;
+
                 if (!map.containsKey(psiMethod))
                     continue;
+
                 doNothing().when(methodService).replaceMethodComment(any(), any(), any());
                 doReturn(psiMethod).when(updateAction).getMethod(editor, psiFile);
                 doReturn(API_KEY).when((RemoteGAServiceOkHttp) remoteGAService).getApiKey();
@@ -190,16 +195,15 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
                     updateAction.actionPerformed(e);
                     verify(methodService).replaceMethodComment(eq(psiMethod), commentCaptor.capture(), eq(project));
                     map.computeIfPresent(psiMethod, (m, commentPairHolderDto) -> commentPairHolderDto.setActual(commentCaptor.getValue()));
+                    i++;
                 }
             }
-            i++;
         }
     }
 
-
     @Override
     protected void tearDown() throws Exception {
-        IOUtils.persistChanges(map, projectName);
+        IOUtils.persistChanges(modelName, map, projectName);
         super.tearDown();
     }
 }
