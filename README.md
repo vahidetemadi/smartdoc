@@ -22,6 +22,7 @@ in project dir run (make sure you have ```Gradle 8.10.1+``` installed):
 ./gradlew build
 ```
 (continue the command with ```x test``` if you want tests skipped!)
+
 Once have the project compiled successfully, you can install the plugin on your IDE through ```Install Plugin from Disk...```. The compiled package is available from ```build/distributions/SmartDoc-1.0.0.zip```.
 
  (II) Through IntelliJ IDEA plugin market. It needs this plugin shared via this platform. Coming soon!
