@@ -43,7 +43,7 @@ def getBleuScore(project, model):
     bleu = sacrebleu.corpus_bleu(actual, [expected])
 
     # Return averages as floats
-    return bleu.score
+    return bleu.score / 100.0
 
 ###### For Rouge ######
 def getRougeScore(project, model):
@@ -82,9 +82,9 @@ print("Reached here")
 metrics = []
 match super_metric:
     case "BERT":
-        metrics = ["Precision", "Recall", "F1-measure"]
+        metrics = ["Precision", "Recall", "F1"]
     case "ROUGE":
-        metrics = ["Precision", "Recall", "F1-measure"]
+        metrics = ["Precision", "Recall", "F1"]
     case "BLEU":
         metrics = ["Bleu"]
 
@@ -101,7 +101,7 @@ for project in projects:
                 p, r, f1 = getBertScore(project, model)
                 data["Precision"].setdefault(project, {})[model] = p
                 data["Recall"].setdefault(project, {})[model] = r
-                data["F1-measure"].setdefault(project, {})[model] = f1
+                data["F1"].setdefault(project, {})[model] = f1
             case "BLEU":
                 bleu = getBleuScore(project, model)
                 data["Bleu"].setdefault(project, {})[model] = bleu
@@ -109,7 +109,7 @@ for project in projects:
                 p, r, f1 = getRougeScore(project, model)
                 data["Precision"].setdefault(project, {})[model] = p
                 data["Recall"].setdefault(project, {})[model] = r
-                data["F1-measure"].setdefault(project, {})[model] = f1
+                data["F1"].setdefault(project, {})[model] = f1
 
 
 
