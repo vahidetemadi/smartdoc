@@ -41,7 +41,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
                 if (model == null) {
                     model = OllamaChatModel.builder()
                             .baseUrl(API_URL)
-                            .modelName("phi:latest")
+                            .modelName(System.getenv("OLLAMA_MODEL_NAME"))
                             .temperature(0.0)
                             .timeout(Duration.ofSeconds(120))
                             .logRequests(true)

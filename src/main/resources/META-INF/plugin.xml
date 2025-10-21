@@ -15,8 +15,9 @@
        Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
        Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
   <description><![CDATA[
-    SmartDoc plugin acts as an AI agent responsible for code document update.<br>
-    <em>It collects live changes and upon the request by end IDE user, provide live accurate comments</em>
+    <br>SmartDoc plugin acts as an AI agent responsible for code document update.<br>
+    <em>For each given method, it receives the request (from right click and select Update Comment) for comment generation, creates a strong and relevant prompt
+    and communicates with the remote/local LLM for generating comment.</em>
   ]]></description>
 
   <!-- Product and plugin compatibility requirements.
