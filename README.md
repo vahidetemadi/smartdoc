@@ -33,7 +33,7 @@ To use the plugin, depending on the LLM usage mode, you may need some small conf
 (I) To use a remote LLM, in this case DeepSeek, you need acquire an API key and place it in ```File --> Settings --> Other Settings --> SmartDoc App Settings --> DeepSeek API Key```
 ![DeepSeek API key](readmeImgs/SmartDoc-api-key.png)
 (II) if you use are using a local LLM run by Ollama, do not touch its default port (i.e., 11434). Make sure it is ```codellama:7b``` to get the most of it.
-
+(Ollama model name should be provided via a environment var named: "OLLAMA_MODEL_NAME", so have it defined prior to running the plugin on your system)
 Once have this configs set, when you right-click over a method, you will see something like this: 
 
 ![SmartDoc LLM options](readmeImgs/SmartDoc-llm-options.png)
