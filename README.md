@@ -28,6 +28,7 @@ Once have the project compiled successfully, you can install the plugin on your 
  (II) Through IntelliJ IDEA plugin market. It needs this plugin shared via this platform. Coming soon!
 
 -- for both options you need Java 21+ installed in your machine, and having preview flag enabled in your IDE (for more info look at [this](https://www.jetbrains.com/guide/java/tips/turn-on-preview-features/)). 
+
 ## Usage
 To use the plugin, depending on the LLM usage mode, you may need some small configs first:
 (I) To use a remote LLM, in this case DeepSeek, you need acquire an API key and place it in ```File --> Settings --> Other Settings --> SmartDoc App Settings --> DeepSeek API Key```
@@ -39,6 +40,8 @@ Once have this configs set, when you right-click over a method, you will see som
 ![SmartDoc LLM options](readmeImgs/SmartDoc-llm-options.png)
 
 Pressing each of models cause starting target method comment becomes updated, editable by you at the end.
+
+> ⚠️ **Warning:** When using a remote LLM, consider the risks of sharing your code with a public provider.
 
 ## Feedback
 We designed a feedback system allowing end user to share their opinion with use, both via rating (1-5) or sending us some texts.
@@ -56,5 +59,4 @@ to discuss what you would like to change.
 Please make sure to update tests as appropriate.
 
 ## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
+[CC BY-ND 4.0](https://creativecommons.org/licenses/by-nd/4.0/deed.en)
