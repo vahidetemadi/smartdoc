@@ -14,6 +14,8 @@ import com.vahid.plugin.smartdoc.service.MethodService;
 import com.vahid.plugin.smartdoc.service.RemoteGAService;
 import com.vahid.plugin.smartdoc.service.RemoteGAServiceOkHttp;
 import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockedStatic;
@@ -26,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.mockito.Mockito.*;
@@ -126,9 +127,11 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
         psiMethodMap.forEach((psiMethod, s) -> System.out.println(psiMethod.getName() + ":::" + s));
     }
 
-    public void test_givenMultipleClassesProject_whenRequestForCommentGen_produceAndRecordCommentPairs() throws IOException{
+    @ParameterizedTest
+    @MethodSource("moduleNames")
+    public void test_givenMultipleClassesProject_whenRequestForCommentGen_produceAndRecordCommentPairs(String moduleName) throws IOException{
         map.clear();
-        Path testResourcePath = Paths.get("src/test/resources/testClasses/thingsearch");
+        Path testResourcePath = Paths.get(STR."src/test/resources/testClasses/\{moduleName}");
         projectName = testResourcePath.getName(testResourcePath.getNameCount() - 1).toString();
 
         try (Stream<Path> paths = Files.walk(testResourcePath, Integer.MAX_VALUE)) {
@@ -199,6 +202,10 @@ public class SmartDocActionTest extends LightJavaCodeInsightFixtureTestCase {
                 }
             }
         }
+    }
+
+    static List<String> moduleNames() {
+        return List.of("edge", "gateway", "json", "things", "thingsearch");
     }
 
     @Override
