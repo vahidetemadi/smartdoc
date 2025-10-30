@@ -1,33 +1,22 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-  <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
   <id>com.vahid.plugin.SmartDoc</id>
-    <idea-version since-build="251" until-build="251.*"/>
+    <idea-version since-build="251" until-build="253.*"/>
 
-  <!-- Public plugin name should be written in Title Case.
-       Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
   <name>SmartDoc</name>
 
-  <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
   <vendor email="vetemadi87@gmail.com" url="https://github.com/vahidetemadi/smartdoc">SmartDoc</vendor>
 
-  <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-       Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
-       Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
   <description><![CDATA[
     <br>SmartDoc plugin acts as an AI agent responsible for code document update.<br>
     <em>For each given method, it receives the request (from right click and select Update Comment) for comment generation, creates a strong and relevant prompt
     and communicates with the remote/local LLM for generating comment.</em>
   ]]></description>
 
-  <!-- Product and plugin compatibility requirements.
-       Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
   <depends>com.intellij.modules.platform</depends>
   <depends>com.intellij.modules.lang</depends>
   <depends>com.intellij.java</depends>
 
-  <!-- Extension points defined by the plugin.
-       Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
   <extensions defaultExtensionNs="com.intellij">
       <applicationConfigurable instance="com.vahid.plugin.smartdoc.config.SmartDocConfig"/>
       <registryKeyBean key="kotlin.mpp.tests.force.gradle" defaultValue="false" overrides="true"/>
@@ -38,11 +27,6 @@
              popup="true">
           <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorCopy"/>
       </group>
-<!--      <action id="com.vahid.plugin.smartdoc.action.UpdateAction" class="com.vahid.plugin.smartdoc.action.UpdateAction"-->
-<!--                text="UpdateComment">-->
-<!--          <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorCopy"/>-->
-<!--          <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt G"/>-->
-<!--      </action>-->
       <action id="com.vahid.plugin.smartdoc.action.DeepSeekUpdateAction" class="com.vahid.plugin.smartdoc.action.DeepSeekUpdateAction"
               text="DeepSeek">
           <add-to-group group-id="com.vahid.plugin.smartdoc.group.UpdateGroup"/>
