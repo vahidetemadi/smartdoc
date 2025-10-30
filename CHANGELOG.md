@@ -11,3 +11,11 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 - Unused import statements and commented lines removed as part of cleanup process
+
+## [1.0.2] - 2025-10-30
+
+### Added
+- Plugin published through JetBrains marketplace!
+
+### Changed
+- Plugin config file polished to add to plugin description

@@ -25,7 +25,7 @@ in project dir run (make sure you have ```Gradle 8.10.1+``` installed):
 
 Once have the project compiled successfully, you can install the plugin on your IDE through ```Install Plugin from Disk...```. The compiled package is available from ```build/distributions/SmartDoc-1.0.0.zip```.
 
- (II) Through IntelliJ IDEA plugin market. It needs this plugin shared via this platform. Coming soon!
+ (II) Through IntelliJ IDEA plugin market. You can access it from [SmartDoc](https://plugins.jetbrains.com/plugin/28786-smartdoc)
 
 -- for both options you need Java 21+ installed in your machine, and having preview flag enabled in your IDE (for more info look at [this](https://www.jetbrains.com/guide/java/tips/turn-on-preview-features/)). 
 
