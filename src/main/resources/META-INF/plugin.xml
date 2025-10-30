@@ -8,9 +8,9 @@
   <vendor email="vetemadi87@gmail.com" url="https://github.com/vahidetemadi/smartdoc">SmartDoc</vendor>
 
   <description><![CDATA[
-    <br>SmartDoc plugin acts as an AI agent responsible for code document update.<br>
-    <em>For each given method, it receives the request (from right click and select Update Comment) for comment generation, creates a strong and relevant prompt
-    and communicates with the remote/local LLM for generating comment.</em>
+    <br>SmartDoc plugin acts as an AI agent responsible for method document update.<br>
+    <em>For each given method, it receives the request (from right click within method area and select UpdateComment) for comment generation, creates a strong and relevant prompt
+    and communicates with the remote/local LLM for generating JavaDoc comment for target method.</em>
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
