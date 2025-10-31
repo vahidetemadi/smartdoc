@@ -17,7 +17,10 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
+import com.vahid.plugin.smartdoc.action.UpdateAction;
 import com.vahid.plugin.smartdoc.dto.FeedbackCommentDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StarRatingFeedback {
 
+    private static Logger logger = LoggerFactory.getLogger(StarRatingFeedback.class);
     private static final ConcurrentHashMap<String, Balloon> activeBalloons = new ConcurrentHashMap<>();
 
     private StarRatingFeedback() {
@@ -107,9 +111,11 @@ public class StarRatingFeedback {
                                 .subscribe(
                                         unsend -> {},
                                         error -> {},
-                                        () -> System.out.println("Post completed successfully"));
+                                        () -> logger.info("Post completed successfully"));
 
-                        System.out.printf("User rated: %d stars, method: %s %n, llm: %s", starIndex, psiMethod.getName(),
+                        logger.info("User rated: {} stars, method: {}, llm: {}",
+                                starIndex,
+                                psiMethod.getName(),
                                 dto.remoteLLM());
                         ratedMethods.add(methodId);
                         if (balloonRef[0] != null) {
@@ -204,7 +210,6 @@ public class StarRatingFeedback {
         closeButton.addActionListener(e -> {
             ratedMethods.add(methodId);
             if (balloonRef[0] != null) {
-                System.out.println("Closed via custom X");
                 balloonRef[0].hide();
                 balloonRef[0].dispose();
                 activeBalloons.remove(methodId);

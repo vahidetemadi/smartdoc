@@ -47,7 +47,6 @@ public class FeedbackManager {
         pendingFeedback.compute(file, (vf, list) -> {
             if (list == null) list = new ArrayList<>();
             list.removeIf(existingMethod -> checkIfMethodsAreEquals.test(existingMethod, dto));
-            System.out.println("PsiMeethod size is" + list.size());
             list.add(dto);
             return list;
         });
@@ -57,23 +56,14 @@ public class FeedbackManager {
             project.getMessageBus().connect().subscribe(
                     FileEditorManagerListener.FILE_EDITOR_MANAGER,
                     new FileEditorManagerListener() {
-//                        @Override
-//                        public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile selected) {
-//                            System.out.println("Entered from open" + selected.getName());
-//                            handleEvent(source.getProject(), selected);
-//                        }
-
                         @Override
                         public void selectionChanged(@NotNull FileEditorManagerEvent event) {
                             VirtualFile selected = event.getNewFile();
                             if (selected != null) {
-                                System.out.println("Handled it!");
                                 handleEvent(event.getManager().getProject(), selected);
                             }
                         }
                     });
-
-            System.out.println("Done with all regs");
         }
 
         // File is already active → show immediately
@@ -89,21 +79,16 @@ public class FeedbackManager {
 
     private static void handleEvent(@NotNull Project project, @NotNull VirtualFile selected) {
         StarRatingFeedback.dismissAllBalloons();
-        System.out.println("Entered!" + selected.getName());
         if (pendingFeedback.containsKey(selected)) {
-            System.out.println("Handleing..." + selected.getName());
             List<FeedbackCommentDto> psiMethods = pendingFeedback.get(selected);
-            System.out.println("values are" + pendingFeedback.get(selected).size());
             if (psiMethods != null) {
                 psiMethods.removeIf(dto -> StarRatingFeedback.isRated(
                         dto.psiMethod().getContainingFile().getVirtualFile().getPath() + "#" + dto.psiMethod().getName()));
 
                 if (psiMethods.isEmpty()) {
-                    System.out.println("Removing...");
                     pendingFeedback.remove(selected);
                 } else {
                     pendingFeedback.put(selected, psiMethods);
-                    System.out.println("Showing....");
                     showFeedbackList(project, psiMethods);
                 }
             }

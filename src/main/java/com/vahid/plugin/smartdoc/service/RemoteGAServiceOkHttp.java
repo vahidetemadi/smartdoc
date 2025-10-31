@@ -98,18 +98,19 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
             return parseResponse(responseBodyStr);
         } catch (IOException e) {
             logger.error("Error occurred when making call to remote DeepSeek: {}", e.getMessage());
+            ApplicationManager.getApplication().invokeAndWait(() -> {
+                DynamicDialog dialog = new DynamicDialog("Failed Remote LLM Call", "Check with you remote LLM API server!");
+                dialog.showAndGet();
+            });
             throw new ProcessCanceledException();
         }
     }
 
     private String parseResponse(String jsonRes) {
         try {
-            System.out.println("Start extracting...");
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(jsonRes);
-            String assistantReply = rootNode.path("choices").get(0).path("message").path("content").asText();
-            System.out.println(String.format("Here is the response: %s", assistantReply));
-            return assistantReply;
+            return rootNode.path("choices").get(0).path("message").path("content").asText();
         } catch (JsonProcessingException e) {
             throw new ProcessCanceledException(e);
         }

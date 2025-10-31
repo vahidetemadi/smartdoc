@@ -22,7 +22,7 @@ public class DynamicDialog extends DialogWrapper {
         this.title = title;
         this.message = message;
         init();
-        setTitle(title);
+        setTitle("SmartDoc " + title);
     }
 
     @Override

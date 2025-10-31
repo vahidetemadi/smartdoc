@@ -22,6 +22,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.vahid.plugin.smartdoc.UI.DynamicDialog;
 import com.vahid.plugin.smartdoc.UI.FeedbackManager;
 import com.vahid.plugin.smartdoc.dto.FeedbackCommentDto;
 import com.vahid.plugin.smartdoc.exception.StructuredOutputMaxRetryException;
@@ -164,6 +165,10 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             }
             attempt++;
         }
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            DynamicDialog dialog = new DynamicDialog("Failed Re-Try Calls", "Reached max tries count. Please initiate another request!");
+            dialog.showAndGet();
+        });
         throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
     }
 

@@ -8,7 +8,9 @@
  */
 package com.vahid.plugin.smartdoc.exception;
 
-public class StructuredOutputMaxRetryException extends RuntimeException{
+import com.intellij.openapi.progress.ProcessCanceledException;
+
+public class StructuredOutputMaxRetryException extends ProcessCanceledException {
     public StructuredOutputMaxRetryException(String message) {
         super(message);
     }

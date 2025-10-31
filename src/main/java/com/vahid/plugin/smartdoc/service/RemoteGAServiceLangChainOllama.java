@@ -10,10 +10,12 @@ package com.vahid.plugin.smartdoc.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.vahid.plugin.smartdoc.UI.DynamicDialog;
 import com.vahid.plugin.smartdoc.dto.ReturnCommentDto;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ResponseFormat;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 @Service(Service.Level.APP)
 public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
@@ -49,7 +52,14 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
                 if (model == null) {
                     model = OllamaChatModel.builder()
                             .baseUrl(API_URL)
-                            .modelName(System.getenv("OLLAMA_MODEL_NAME"))
+                            .modelName(Optional.of(System.getenv("OLLAMA_MODEL_NAME"))
+                                    .orElseThrow(() -> {
+                                        ApplicationManager.getApplication().invokeAndWait(() -> {
+                                            DynamicDialog dialog = new DynamicDialog("EMPTY OLLAMA MODEL NAME", "Before proceeding, please set \"OLLAMA_MODEL_NAME\" env!");
+                                            dialog.showAndGet();
+                                        });
+                                        return new ProcessCanceledException();
+                                    }))
                             .temperature(0.0)
                             .timeout(Duration.ofSeconds(120))
                             .logRequests(true)
