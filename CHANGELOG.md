@@ -19,3 +19,15 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Plugin config file polished to add to plugin description
+
+
+## [1.0.3] - 2025-10-31
+
+### Added
+- Message dialogs added here and there to alert user for different failed operations
+
+### Changed
+- Replaced logging statements, making it consistent all over app
+
+### Removed
+- Unnecessary consol writes
