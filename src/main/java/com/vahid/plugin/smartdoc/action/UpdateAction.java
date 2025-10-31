@@ -45,7 +45,6 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
     private final MethodService methodService;
     private final RemoteGAService remoteGAService;
 
-
     protected UpdateAction(RemoteGAService remoteGAService) {
         this.methodService = ApplicationManager.getApplication().getService(MethodService.class);
         this.remoteGAService = remoteGAService;
@@ -124,7 +123,6 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                                                     throw new RuntimeException(ex);
                                                 }
                                             });
-                            //methodService.replaceMethodComment(stackMethod, remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls), e.getProject());
                         } else {
                             String methodComment = methodCommentOptional
                                     .map(PsiComment::getText)
@@ -133,7 +131,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                         }
                     }
                 } catch (ProcessCanceledException e) {
-                    logger.info("Task canceled by the user!");
+                    logger.error("Task canceled by the user or unexpected event");
                     throw e;
                 }
                 finally {

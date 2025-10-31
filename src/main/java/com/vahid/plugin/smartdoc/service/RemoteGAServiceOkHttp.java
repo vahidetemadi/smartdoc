@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service(Service.Level.APP)
@@ -69,15 +70,17 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
 
         String json = String.format("""
                 {
-                    "model": "deepseek-coder",
+                    "model": "%s",
                     "messages": [
                         {"role": "system", "content": "Be very concise and only return method comment in JavaDoc style including the opening and closing comment tag, given following explanation of nested method, if exist"},
                         {"role": "user", "content": %s}
                     ],
                     "stream": false
                 }
-                """, formattedPrompt);
-        logger.info("Here is the  request: {}", json);
+                """,
+                Optional.ofNullable(System.getenv("DEEPSEEK_MODEL_NAME"))
+                        .orElse("deepseek-coder"),
+                formattedPrompt);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json"));
         Request request = new Request.Builder()
                 .url(API_URL)
@@ -88,7 +91,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
+                throw new IOException("Unexpected code: " + response.code());
             }
 
             assert response.body() != null;
@@ -99,7 +102,7 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
         } catch (IOException e) {
             logger.error("Error occurred when making call to remote DeepSeek: {}", e.getMessage());
             ApplicationManager.getApplication().invokeAndWait(() -> {
-                DynamicDialog dialog = new DynamicDialog("Failed Remote LLM Call", "Check with you remote LLM API server!");
+                DynamicDialog dialog = new DynamicDialog("Failed Remote LLM Call", "Check info of your remote LLM API server (for more details, seethe logs)!");
                 dialog.showAndGet();
             });
             throw new ProcessCanceledException();

@@ -13,7 +13,9 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.psi.PsiCodeBlock;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiStatement;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
@@ -29,6 +31,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -94,18 +98,24 @@ public class StarRatingFeedback {
                     submitButton.setAlignmentX(Component.LEFT_ALIGNMENT);
                     submitButton.addActionListener(ev -> {
                         String userFeedback = commentArea.getText().trim();
+                        int statementCount = Optional.ofNullable(psiMethod.getBody())
+                                .map(PsiCodeBlock::getStatementCount)
+                                .orElse(0);
 
-                        WebClient.create("http://localhost:8000")
+                        WebClient.create("https://wasp-useful-slowly.ngrok-free.app")
                                 .post()
                                 .uri("/send-feedback")
                                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                                 .bodyValue("""
-                                            {
-                                                "rate": "%s",
-                                                "method_size": "%s",
-                                                "comment": "%s",
-                                                "LLM type: "%s""
-                                            }""".formatted(starIndex, psiMethod.getName(), escapeJson(userFeedback), dto.remoteLLM()))
+                                    {
+                                        "rate": "%s",
+                                        "method_size": "%s",
+                                        "comment": "%s",
+                                        "LLM_type": "%s"
+                                    }""".formatted(starIndex,
+                                        statementCount,
+                                        escapeJson(userFeedback),
+                                        dto.remoteLLM()))
                                 .retrieve()
                                 .bodyToMono(Void.class)
                                 .subscribe(
@@ -113,9 +123,10 @@ public class StarRatingFeedback {
                                         error -> {},
                                         () -> logger.info("Post completed successfully"));
 
-                        logger.info("User rated: {} stars, method: {}, llm: {}",
+                        logger.info("User rated: {} stars, method: {}, statment counts: {}, llm: {}",
                                 starIndex,
                                 psiMethod.getName(),
+                                statementCount,
                                 dto.remoteLLM());
                         ratedMethods.add(methodId);
                         if (balloonRef[0] != null) {

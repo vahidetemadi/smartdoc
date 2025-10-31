@@ -52,7 +52,7 @@ public final class RemoteGAServiceLangChainOllama extends RemoteGAService {
                 if (model == null) {
                     model = OllamaChatModel.builder()
                             .baseUrl(API_URL)
-                            .modelName(Optional.of(System.getenv("OLLAMA_MODEL_NAME"))
+                            .modelName(Optional.ofNullable(System.getenv("OLLAMA_MODEL_NAME"))
                                     .orElseThrow(() -> {
                                         ApplicationManager.getApplication().invokeAndWait(() -> {
                                             DynamicDialog dialog = new DynamicDialog("EMPTY OLLAMA MODEL NAME", "Before proceeding, please set \"OLLAMA_MODEL_NAME\" env!");
