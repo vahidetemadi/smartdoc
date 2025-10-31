@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Replaced logging statements, making it consistent all over app
+- Add remote URI to enable submission of user satisfaction rate, user feedback text, number of method statement and llm type (per method)
 
 ### Removed
-- Unnecessary consol writes
+- Unnecessary consol writes (was dedicated for debugging!)
