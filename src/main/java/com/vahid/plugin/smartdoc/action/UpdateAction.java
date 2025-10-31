@@ -164,7 +164,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             attempt++;
         }
         ApplicationManager.getApplication().invokeAndWait(() -> {
-            DynamicDialog dialog = new DynamicDialog("Failed Re-Try Calls", "Reached max tries count. Please initiate another request!");
+            DynamicDialog dialog = new DynamicDialog("Failed Re-Try Calls", "Reached max try count. Please initiate another request!");
             dialog.showAndGet();
         });
         throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
