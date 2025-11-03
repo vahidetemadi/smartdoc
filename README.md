@@ -2,7 +2,7 @@
 
 SmartDoc is a tool developed as an IntelliJ IDEA plugin to assist developer in JavaDoc style code comment generation.
 In its core it involves an AI agent that has its own memory, remote/local LLM connection and static analysis code implementation.
-This plugin is developed in Java and will be accessible from IntellJ plugin platform. 
+This plugin is developed in Java and will be accessible from [JetBrains marketplace](https://plugins.jetbrains.com/) (search "SmartDoc"). 
 
 ## Architecture
 
@@ -25,7 +25,7 @@ in project dir run (make sure you have ```Gradle 8.10.1+``` installed):
 
 Once have the project compiled successfully, you can install the plugin on your IDE through ```Install Plugin from Disk...```. The compiled package is available from ```build/distributions/SmartDoc-{version_from_build_file}.zip```.
 
- (II) Through IntelliJ IDEA plugin market. You can access it from [SmartDoc](https://plugins.jetbrains.com/plugin/28786-smartdoc)
+ (II) Through JetBrains plugin marketplace. Head to [SmartDoc](https://plugins.jetbrains.com/plugin/28786-smartdoc).
 
 -- for both options you need Java 21+ installed in your machine, and having preview flag enabled in your IDE (for more info look at [this](https://www.jetbrains.com/guide/java/tips/turn-on-preview-features/)). 
 
