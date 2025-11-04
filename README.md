@@ -66,3 +66,16 @@ See the [Changelog](CHANGELOG.md) for details
 
 ## License
 [CC BY-ND 4.0](https://creativecommons.org/licenses/by-nd/4.0/deed.en)
+
+## Citation
+If you intend to use SmartDoc in your research, please cite it using:
+```bibtex
+@misc{etemadi2025smartdoccontextawareagenticmethod,
+      title={SmartDoc: A Context-Aware Agentic Method Comment Generation Plugin}, 
+      author={Vahid Etemadi and Gregorio Robles},
+      year={2025},
+      eprint={2511.00450},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE},
+      url={https://arxiv.org/abs/2511.00450}, 
+}
