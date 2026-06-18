@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "com.vahid.plugin"
-version = "1.0.3"
+version = "1.0.4"
 
 repositories {
     maven {
