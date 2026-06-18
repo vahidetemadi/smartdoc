@@ -15,6 +15,10 @@ group = "com.vahid.plugin"
 version = "1.0.3"
 
 repositories {
+    maven {
+        url = uri("http://localhost:8081/repository/maven-public/")
+        isAllowInsecureProtocol = true
+    }
     mavenCentral()
     maven (url = "https://jitpack.io")
     maven (url = "https://mvnrepository.com/artifact/com.jetbrains.intellij.platform/test-framework")
@@ -89,17 +93,23 @@ dependencies {
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.2")
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+}
+
 tasks {
 
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
-        options.compilerArgs.add("--enable-preview")
+        options.release.set(21)
         options.compilerArgs.add("-Xlint:deprecation")
     }
 
     kotlin {
-        jvmToolchain(21)
+        jvmToolchain(25)
         compilerOptions {
           freeCompilerArgs.add("-Xjvm-default=all")
           jvmTarget.set(JvmTarget.JVM_21)
@@ -133,10 +143,10 @@ tasks {
     test {
         outputs.upToDateWhen { false }
         useJUnitPlatform()
-        jvmArgs = listOf("--enable-preview")
+        jvmArgs = listOf("ea")
     }
 
     runIde {
-        jvmArgs = listOf("--enable-preview", "-ea")
+        jvmArgs = listOf("-ea")
     }
 }

@@ -40,7 +40,6 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
     Logger logger = LoggerFactory.getLogger(UpdateAction.class);
     ThreadLocal<Stack<PsiMethod>> stackThreadLocal = ThreadLocal.withInitial(Stack::new);
     ThreadLocal<Set<PsiMethod>> setThreadLocal = ThreadLocal.withInitial(HashSet::new);
-    private static final ScopedValue<Integer> RETRY_COUNT = ScopedValue.newInstance();
     private static final Integer MAX_RETRY_COUNT = 3;
     private final MethodService methodService;
     private final RemoteGAService remoteGAService;
@@ -114,15 +113,12 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
                         List<PsiMethodCallExpression> firstLevelMethodCalls = methodService.findMethodCalls(stackMethod);
                         Optional<PsiComment> methodCommentOptional = methodService.findMethodComment(stackMethod);
                         if (methodStack.isEmpty()) {
-                            ScopedValue.where(RETRY_COUNT, 0)
-                                            .run(() -> {
-                                                try {
-                                                    String comment = getMethodCommentWithRetry(stackMethod, firstLevelMethodCalls);
-                                                    methodService.replaceMethodComment(stackMethod, comment, e.getProject());
-                                                } catch (Exception ex) {
-                                                    throw new RuntimeException(ex);
-                                                }
-                                            });
+                            try {
+                                String comment = getMethodCommentWithRetry(stackMethod, firstLevelMethodCalls);
+                                methodService.replaceMethodComment(stackMethod, comment, e.getProject());
+                            } catch (Exception ex) {
+                                throw new RuntimeException(ex);
+                            }
                         } else {
                             String methodComment = methodCommentOptional
                                     .map(PsiComment::getText)
@@ -153,29 +149,30 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
         }.queue();
     }
 
-    private String getMethodCommentWithRetry(PsiMethod stackMethod, List<PsiMethodCallExpression> firstLevelMethodCalls) throws Exception {
-        int attempt = RETRY_COUNT.get();
-        while (attempt < MAX_RETRY_COUNT) {
+    private String getMethodCommentWithRetry(PsiMethod stackMethod,
+                                             List<PsiMethodCallExpression> firstLevelMethodCalls) throws Exception {
+        for (int attempt = 0; attempt < MAX_RETRY_COUNT; attempt++) {
             String newComment = remoteGAService.getMethodComment(stackMethod, firstLevelMethodCalls);
-            Optional<String> extractedComment =  MethodService.getMatchedComment(newComment);
+            Optional<String> extractedComment = MethodService.getMatchedComment(newComment);
             if (extractedComment.isPresent()) {
                 return extractedComment.get();
             }
-            attempt++;
         }
         ApplicationManager.getApplication().invokeAndWait(() -> {
-            DynamicDialog dialog = new DynamicDialog("Failed Re-Try Calls", "Reached max try count. Please initiate another request!");
+            DynamicDialog dialog = new DynamicDialog(
+                    "Failed Re-Try Calls",
+                    "Reached max try count. Please initiate another request!");
             dialog.showAndGet();
         });
-        throw new StructuredOutputMaxRetryException("Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
+        throw new StructuredOutputMaxRetryException(
+                "Max retries (" + MAX_RETRY_COUNT + ") exceeded for: " + stackMethod);
     }
-
     public PsiMethod getMethod(Editor editor, PsiFile psiFile) {
-        return ReadAction.compute(() -> {
+        return ReadAction.nonBlocking(() -> {
             int offset = editor.getCaretModel().getOffset();
             PsiElement elementAtCaret = psiFile.findElementAt(offset);
             return PsiTreeUtil.getParentOfType(elementAtCaret, PsiMethod.class);
-        });
+        }).executeSynchronously();
     }
 
     private void iterateOverMethods(PsiMethod method, Stack<PsiMethod> methodStack, Set<PsiMethod> visited) {

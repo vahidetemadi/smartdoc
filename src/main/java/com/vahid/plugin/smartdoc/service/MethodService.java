@@ -65,7 +65,7 @@ public final class MethodService {
     }
 
     public Optional<PsiComment> findMethodComment(PsiMethod method) {
-        return ReadAction.compute(() -> {
+        return ReadAction.computeCancellable(() -> {
             // Check for a PsiDocComment directly attached to the method
             PsiDocComment docComment = method.getDocComment();
             if (docComment != null) {
@@ -118,7 +118,7 @@ public final class MethodService {
     }
 
     public static String getMethodUniqueKey(PsiMethod psiMethod) {
-        return ReadAction.compute(() -> {
+        return ReadAction.nonBlocking(() -> {
             PsiClass psiClass = psiMethod.getContainingClass();
             String qualifiedClassName = psiClass != null ? psiClass.getQualifiedName() : "";
             String methodName = psiMethod.getName();
@@ -126,7 +126,7 @@ public final class MethodService {
                     .map(p -> p.getType().getCanonicalText())
                     .collect(Collectors.joining(", "));
             return String.format("%s#%s(%s)", qualifiedClassName, methodName, parameterTypes);
-        });
+        }).executeSynchronously();
     }
 
     @Nullable
