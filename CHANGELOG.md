@@ -33,7 +33,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - Unnecessary consol writes (was dedicated for debugging!).
 
-## [1.0.4] - 2026-05-16
+## [1.0.4] - 2026-05-18
 
 ### Changed
 - Replaced deprecated API of ReadAction abstraction with new reliable implementations.
