@@ -81,10 +81,11 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                 Optional.ofNullable(System.getenv("DEEPSEEK_MODEL_NAME"))
                         .orElse("deepseek-coder"),
                 formattedPrompt);
+        logger.info("Prompt submitted: {}", json);
         RequestBody requestBody = RequestBody.create(json, MediaType.get("application/json"));
         Request request = new Request.Builder()
                 .url(API_URL)
-                .addHeader("Authorization", STR."Bearer \{getApiKey()}")
+                .addHeader("Authorization", "Bearer " + getApiKey())
                 .addHeader("Content-Type", "application/json")
                 .post(requestBody)
                 .build();
@@ -94,7 +95,6 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
                 throw new IOException("Unexpected code: " + response.code());
             }
 
-            assert response.body() != null;
             String responseBodyStr = response.body().string();
             logger.info("Here is raw res from deepseek: {}", responseBodyStr);
 
