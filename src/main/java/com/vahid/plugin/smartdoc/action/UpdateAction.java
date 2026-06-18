@@ -92,7 +92,7 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
             return;
         }
 
-        new Task.Backgroundable(project, "Updating comment", true) {
+        new Task.Backgroundable(project, "Updating Comment", true) {
             private PsiMethod rootMethod;
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
