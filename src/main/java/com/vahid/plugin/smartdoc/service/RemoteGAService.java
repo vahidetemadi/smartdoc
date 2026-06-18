@@ -34,7 +34,7 @@ public abstract class RemoteGAService {
      * @return engineered prompt
      */
     public String createPrompt(PsiMethod superMethod, List<PsiMethodCallExpression> psiMethodCallExpressions) {
-        return ReadAction.compute(() -> {
+        return ReadAction.nonBlocking(() -> {
             String rootTemplate = """
                     Produce maximum of three lines JavaDoc style method comment (including all relevant marks such as param, return or throws if required based on the context) for method: {0}""";
 
@@ -59,7 +59,7 @@ public abstract class RemoteGAService {
             return MessageFormat.format(rootTemplate + followingTemplate,
                     superMethodText,
                     joinedMethodCalls);
-        });
+        }).executeSynchronously();
     }
 
 
