@@ -6,8 +6,7 @@ plugins {
     id("idea")
     id("maven-publish")
     id("org.jetbrains.kotlin.jvm") version "2.1.20"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("org.jetbrains.intellij.platform") version "2.9.0"
     id("com.diffplug.spotless") version "6.25.0"
 }
 
@@ -17,6 +16,10 @@ version = "1.0.4"
 repositories {
     maven {
         url = uri("http://localhost:8081/repository/maven-public/")
+        credentials {
+            username = findProperty("nexusUser") as String?
+            password = findProperty("nexusPassword") as String?
+        }
         isAllowInsecureProtocol = true
     }
     mavenCentral()
@@ -29,13 +32,10 @@ repositories {
     maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
     maven("https://cache-redirector.jetbrains.com/repo1.maven.org/maven2")
     maven("https://packages.jetbrains.team/maven/p/kpm/public")
-    maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies")
-    maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
-    maven("https://packages.jetbrains.team/maven/p/kpm/public")
     maven("https://www.jetbrains.com/intellij-repository/releases")
     maven("https://cache-redirector.jetbrains.com/www.jetbrains.com/intellij-repository/releases")
     intellijPlatform {
-    defaultRepositories()
+        defaultRepositories()
     }
 }
 
@@ -48,11 +48,12 @@ spotless {
 
 dependencies {
     intellijPlatform {
-    intellijIdeaCommunity("2025.1")
-    bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
-    create("IC", "2025.1")
-    testFramework(TestFrameworkType.Platform)
-    testFramework(TestFrameworkType.Plugin.Java)
+        //intellijIdeaCommunity("2025.1")
+        bundledPlugins(listOf("com.intellij.java", "Git4Idea"))
+        //create("IC", "2025.1")
+        create("IC", "2025.1")
+        testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Plugin.Java)
     }
     implementation(kotlin("stdlib"))
     implementation("com.theokanning.openai-gpt3-java:api:0.18.2")
@@ -67,9 +68,9 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("org.springframework:spring-webflux:6.0.10") {
-    exclude(group = "com.fasterxml.jackson.core")
-    exclude(group = "com.fasterxml.jackson.module")
-    exclude(group = "com.fasterxml.jackson.datatype")
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "com.fasterxml.jackson.module")
+        exclude(group = "com.fasterxml.jackson.datatype")
     }
     implementation("io.projectreactor:reactor-core:3.5.7")
     implementation("io.projectreactor.netty:reactor-netty-http:1.1.9")
@@ -99,6 +100,19 @@ java {
     }
 }
 
+intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = "251"
+        }
+    }
+
+    pluginVerification {
+        ides {
+            create("IC", "2025.1")
+        }
+    }
+}
 tasks {
 
     withType<JavaCompile> {
@@ -118,26 +132,6 @@ tasks {
 
     intellijPlatform {
         buildSearchableOptions = true
-    }
-
-    shadowJar {
-        archiveClassifier.set("")
-    }
-
-    prepareSandbox {
-        dependsOn(shadowJar)
-    }
-
-    prepareTestSandbox {
-        dependsOn(shadowJar)
-    }
-
-    build {
-        dependsOn(shadowJar)
-    }
-
-    buildPlugin {
-        dependsOn(shadowJar, test)
     }
 
     test {

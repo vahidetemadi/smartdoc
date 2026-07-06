@@ -42,7 +42,7 @@ public final class MethodService {
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
         List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
-        ReadAction.run(() -> method.accept(new JavaRecursiveElementVisitor() {
+        ReadAction.nonBlocking(() -> method.accept(new JavaRecursiveElementVisitor() {
         @Override
         public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
             super.visitMethodCallExpression(expression);
@@ -54,7 +54,7 @@ public final class MethodService {
                 }
             }
         }
-        }));
+        })).executeSynchronously();
         return methodCalls;
     }
 
