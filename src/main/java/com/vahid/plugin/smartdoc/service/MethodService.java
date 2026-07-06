@@ -65,7 +65,7 @@ public final class MethodService {
     }
 
     public Optional<PsiComment> findMethodComment(PsiMethod method) {
-        return ReadAction.computeCancellable(() -> {
+        return ReadAction.nonBlocking(() -> {
             // Check for a PsiDocComment directly attached to the method
             PsiDocComment docComment = method.getDocComment();
             if (docComment != null) {
@@ -86,7 +86,7 @@ public final class MethodService {
             }
 
             return Optional.empty();
-        });
+        }).executeSynchronously();
     }
 
     public String getMethodComment(PsiMethod psiMethod) {
