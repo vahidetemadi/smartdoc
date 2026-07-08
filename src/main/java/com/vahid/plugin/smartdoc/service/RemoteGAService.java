@@ -61,7 +61,4 @@ public abstract class RemoteGAService {
                     joinedMethodCalls);
         }).executeSynchronously();
     }
-
-
-
 }

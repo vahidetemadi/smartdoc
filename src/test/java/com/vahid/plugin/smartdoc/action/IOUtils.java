@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class IOUtils {
     public static void persistChanges(String modelName, Map<PsiMethod, CommentPairHolderDto> theMap, String projectName) {
-        Path testResultPath = Paths.get(STR."src/test/resources/testResults/\{modelName}/\{projectName}.txt");
+        Path testResultPath = Paths.get("src/test/resources/testResults/%s/%s.txt".formatted(modelName, projectName));
         try {
             Files.createDirectories(testResultPath.getParent());
             if (Files.notExists(testResultPath)) {

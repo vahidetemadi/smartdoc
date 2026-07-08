@@ -182,7 +182,9 @@ public abstract class UpdateAction extends AnAction implements DumbAware {
         }
         for (PsiMethodCallExpression expression : expressions) {
             AtomicReference<PsiMethod> psiMethodRef = new AtomicReference<>();
-            ReadAction.run(() -> psiMethodRef.set(expression.resolveMethod()));
+            PsiMethod methodFound = ReadAction.nonBlocking(expression::resolveMethod)
+                    .executeSynchronously();
+            psiMethodRef.set(methodFound);
             PsiMethod psiMethod = psiMethodRef.get();
             methodStack.add(psiMethod);
             iterateOverMethods(psiMethod, methodStack, visited);
