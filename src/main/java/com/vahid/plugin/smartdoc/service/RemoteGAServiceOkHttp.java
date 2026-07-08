@@ -102,10 +102,10 @@ public final class RemoteGAServiceOkHttp extends RemoteGAService{
         } catch (IOException e) {
             logger.error("Error occurred when making call to remote DeepSeek: {}", e.getMessage());
             ApplicationManager.getApplication().invokeAndWait(() -> {
-                DynamicDialog dialog = new DynamicDialog("Failed Remote LLM Call", "Check info of your remote LLM API server (for more details, seethe logs)!");
+                DynamicDialog dialog = new DynamicDialog("Failed Remote LLM Call", "Check info of your remote LLM API server (for more details, see the logs)!");
                 dialog.showAndGet();
             });
-            throw new ProcessCanceledException();
+            throw new ProcessCanceledException(e);
         }
     }
 
