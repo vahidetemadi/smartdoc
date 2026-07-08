@@ -9,6 +9,7 @@
 package com.vahid.plugin.smartdoc.UI;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.VisibleAreaListener;
 import com.intellij.openapi.ui.popup.Balloon;
@@ -18,9 +19,11 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiStatement;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import com.vahid.plugin.smartdoc.action.UpdateAction;
 import com.vahid.plugin.smartdoc.dto.FeedbackCommentDto;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -46,10 +49,20 @@ public class StarRatingFeedback {
 
     private static final Set<String> ratedMethods = ConcurrentHashMap.newKeySet();
 
+    record MethodInfo(String id, String name, int textOffset, int statementCount) {}
+
     public static void show(Editor editor, FeedbackCommentDto dto) {
         PsiMethod psiMethod = dto.psiMethod();
-        String methodId = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
-        if (ratedMethods.contains(methodId)) {
+
+        MethodInfo methodInfo = ReadAction.compute(() -> {
+            String id = psiMethod.getContainingFile().getVirtualFile().getPath() + "#" + psiMethod.getName();
+            int count = Optional.ofNullable(psiMethod.getBody())
+                    .map(PsiCodeBlock::getStatementCount)
+                    .orElse(0);
+            return new MethodInfo(id, psiMethod.getName(), psiMethod.getTextOffset(), count);
+        });
+
+        if (ratedMethods.contains(methodInfo.id)) {
             return;
         }
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
@@ -90,50 +103,11 @@ public class StarRatingFeedback {
                     commentArea.setLineWrap(true);
                     commentArea.setWrapStyleWord(true);
 
-                    JScrollPane scrollPane = new JScrollPane(commentArea);
+                    JScrollPane scrollPane = new JBScrollPane(commentArea);
                     scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
                     scrollPane.setPreferredSize(new Dimension(400, 80));
 
-                    JButton submitButton = new JButton("Submit");
-                    submitButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-                    submitButton.addActionListener(ev -> {
-                        String userFeedback = commentArea.getText().trim();
-                        int statementCount = Optional.ofNullable(psiMethod.getBody())
-                                .map(PsiCodeBlock::getStatementCount)
-                                .orElse(0);
-
-                        WebClient.create("https://wasp-useful-slowly.ngrok-free.app")
-                                .post()
-                                .uri("/send-feedback")
-                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                                .bodyValue("""
-                                    {
-                                        "rate": "%s",
-                                        "method_size": "%s",
-                                        "comment": "%s",
-                                        "LLM_type": "%s"
-                                    }""".formatted(starIndex,
-                                        statementCount,
-                                        escapeJson(userFeedback),
-                                        dto.remoteLLM()))
-                                .retrieve()
-                                .bodyToMono(Void.class)
-                                .subscribe(
-                                        unsend -> {},
-                                        error -> {},
-                                        () -> logger.info("Post completed successfully"));
-
-                        logger.info("User rated: {} stars, method: {}, statment counts: {}, llm: {}",
-                                starIndex,
-                                psiMethod.getName(),
-                                statementCount,
-                                dto.remoteLLM());
-                        ratedMethods.add(methodId);
-                        if (balloonRef[0] != null) {
-                            balloonRef[0].hide();
-                            activeBalloons.remove(methodId);
-                        }
-                    });
+                    JButton submitButton = getJButton(commentArea, starIndex, methodInfo, dto, balloonRef);
 
                     panel.add(commentLabel);
                     panel.add(Box.createVerticalStrut(5));
@@ -176,10 +150,9 @@ public class StarRatingFeedback {
                 balloonRef[0].dispose();
             }
 
-            activeBalloons.remove(methodId);
+            activeBalloons.remove(methodInfo.id);
 
-            int offset = psiMethod.getTextOffset();
-            Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(offset));
+            Point xy = editor.visualPositionToXY(editor.offsetToVisualPosition(methodInfo.textOffset));
             RelativePoint relativePoint = new RelativePoint(editor.getContentComponent(), xy);
 
             Balloon balloon = JBPopupFactory.getInstance()
@@ -193,7 +166,7 @@ public class StarRatingFeedback {
                     .createBalloon();
 
             balloonRef[0] = balloon;
-            activeBalloons.put(methodId, balloon);
+            activeBalloons.put(methodInfo.id, balloon);
             balloon.show(relativePoint, Balloon.Position.below);
         };
 
@@ -210,7 +183,7 @@ public class StarRatingFeedback {
                 if (balloonRef[0] != null && !balloonRef[0].isDisposed()) {
                     balloonRef[0].hide();
                     balloonRef[0].dispose();
-                    activeBalloons.remove(methodId);
+                    activeBalloons.remove(methodInfo.id);
                     editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
                 }
             }
@@ -219,15 +192,56 @@ public class StarRatingFeedback {
         editor.getScrollingModel().addVisibleAreaListener(listenerRef[0]);
 
         closeButton.addActionListener(e -> {
-            ratedMethods.add(methodId);
+            ratedMethods.add(methodInfo.id);
             if (balloonRef[0] != null) {
                 balloonRef[0].hide();
                 balloonRef[0].dispose();
-                activeBalloons.remove(methodId);
+                activeBalloons.remove(methodInfo.id);
             }
 
             editor.getScrollingModel().removeVisibleAreaListener(listenerRef[0]);
         });
+    }
+
+    private static @NonNull JButton getJButton(JTextArea commentArea, int starIndex, MethodInfo methodInfo, FeedbackCommentDto dto, Balloon[] balloonRef) {
+        JButton submitButton = new JButton("Submit");
+        submitButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        submitButton.addActionListener(ev -> {
+            String userFeedback = commentArea.getText().trim();
+
+            WebClient.create("https://wasp-useful-slowly.ngrok-free.app")
+                    .post()
+                    .uri("/send-feedback")
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .bodyValue("""
+                        {
+                            "rate": "%s",
+                            "method_size": "%s",
+                            "comment": "%s",
+                            "LLM_type": "%s"
+                        }""".formatted(starIndex,
+                            methodInfo.statementCount,
+                            escapeJson(userFeedback),
+                            dto.remoteLLM()))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .subscribe(
+                            unsend -> {},
+                            error -> {},
+                            () -> logger.info("Post completed successfully"));
+
+            logger.info("User rated: {} stars, method: {}, statment counts: {}, llm: {}",
+                    starIndex,
+                    methodInfo.name,
+                    methodInfo.statementCount,
+                    dto.remoteLLM());
+            ratedMethods.add(methodInfo.id);
+            if (balloonRef[0] != null) {
+                balloonRef[0].hide();
+                activeBalloons.remove(methodInfo.id);
+            }
+        });
+        return submitButton;
     }
 
     private static void updateStars(JLabel[] stars, int count) {
