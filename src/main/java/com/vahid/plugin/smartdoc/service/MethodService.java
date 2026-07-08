@@ -41,21 +41,25 @@ public final class MethodService {
                     "\\*/", Pattern.DOTALL);
 
     public List<PsiMethodCallExpression> findMethodCalls(PsiMethod method) {
-        List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
-        ReadAction.nonBlocking(() -> method.accept(new JavaRecursiveElementVisitor() {
-        @Override
-        public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
-            super.visitMethodCallExpression(expression);
-            PsiMethod calledMethod = expression.resolveMethod();
-            if (calledMethod != null) {
-                PsiClass calledClass = calledMethod.getContainingClass();
-                if (calledClass != null && isInProject(calledClass)) {
-                    methodCalls.add(expression);
+        return ReadAction.nonBlocking(() -> {
+            List<PsiMethodCallExpression> methodCalls = new ArrayList<>();
+
+            method.accept(new JavaRecursiveElementVisitor() {
+                @Override
+                public void visitMethodCallExpression(@NotNull PsiMethodCallExpression expression) {
+                    super.visitMethodCallExpression(expression);
+                    PsiMethod calledMethod = expression.resolveMethod();
+                    if (calledMethod != null) {
+                        PsiClass calledClass = calledMethod.getContainingClass();
+                        if (calledClass != null && isInProject(calledClass)) {
+                            methodCalls.add(expression);
+                        }
+                    }
                 }
-            }
-        }
-        })).executeSynchronously();
-        return methodCalls;
+            });
+
+            return methodCalls;
+        }).executeSynchronously();
     }
 
     public boolean isInProject(PsiClass psiClass) {
@@ -67,7 +71,7 @@ public final class MethodService {
     public Optional<PsiComment> findMethodComment(PsiMethod method) {
         return ReadAction.nonBlocking(() -> {
             // Check for a PsiDocComment directly attached to the method
-            PsiDocComment docComment = method.getDocComment();
+            PsiComment docComment = method.getDocComment();
             if (docComment != null) {
                 return Optional.of(docComment);
             }
@@ -85,7 +89,7 @@ public final class MethodService {
                 element = element.getPrevSibling();
             }
 
-            return Optional.empty();
+            return Optional.<PsiComment>empty();
         }).executeSynchronously();
     }
 
